@@ -67,12 +67,13 @@ ENV SHARELATEX_APP_NAME "Overleaf Community Edition"
 ENV OPTIMISE_PDF "true"
 
 ENV NODE_ENV "production"
+#ENV NODE_ENV "development"
 ENV LOG_LEVEL "info"
 
 
 EXPOSE 80
 
-WORKDIR /
+WORKDIR /var/www/sharelatex/web
 
 ENTRYPOINT ["/sbin/my_init"]
 
