@@ -51,6 +51,18 @@ COPY server-ce/init_scripts/ /etc/my_init.d/
 # -----------------------
 COPY server-ce/settings.js /etc/sharelatex/settings.js
 
+# Copy OPENAGH LaTeX package
+COPY server-ce/openagh/ /usr/local/texlive/texmf-local/tex/latex/openagh/
+
+# Run script that recreates TeX Live database dependencies - this step makes openagh package visible as LaTeX package
+RUN /usr/local/texlive/2021/texmf-dist/scripts/texlive/mktexlsr
+
+# Install necessery LaTeX packages
+RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile
+
+# Install Inkscape for generation pdfs files from svg images
+RUN add-apt-repository ppa:inkscape.dev/stable && apt -y install inkscape
+
 # Copy grunt thin wrapper
 # -----------------------
 ADD server-ce/bin/grunt /usr/local/bin/grunt
@@ -67,7 +79,7 @@ ENV SHARELATEX_APP_NAME "Overleaf Community Edition"
 ENV OPTIMISE_PDF "true"
 
 ENV NODE_ENV "production"
-#ENV NODE_ENV "development"
+# ENV NODE_ENV "development"
 ENV LOG_LEVEL "info"
 
 
