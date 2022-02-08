@@ -38,7 +38,19 @@
 				if moduleIncludesAvailable('editor:main')
 					!= moduleIncludes('editor:main', locals)
 				else
-					.toolbar.toolbar-editor
+					//- .ng-scope(
+					//- 	ng-controller="EditorLoaderController"
+					//- )
+					//- .toolbar.toolbar-editor.test.ng-scope(ng-controller="EditorToolbarController")
+					.toolbar.toolbar-editor.test.ng-scope
+						.div(vertical-resizable-bottom)
+							toggle-switch.ng-pristine.ng-untouched.ng-valid.ng-isolate-scope.ng-not-empty(
+								description="Editor mode."
+								label-false="Source"
+								label-true="Rich Text"
+								ng-model="editor.showRichText"
+							)
+								//- != moduleIncludes('editor:symbol-palette', locals)
 
 				.multi-selection-ongoing(
 					ng-show="multiSelectedCount > 0"
