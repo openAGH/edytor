@@ -117,6 +117,7 @@
 
 % ######### CONSTANTS #########
 %\newcommand\openaghdomain{}
+\newcommand{\openaghpackagedir}{/usr/local/texlive/texmf-local/tex/latex/openagh}
 \newcommand{\openaghdomain}{https://epodreczniki.open.agh.edu.pl}
 \newcommand{\openaghreaderroute}[2]{\openaghdomain/handbook/#1/module/#2/reader}
 \newcommand{\openaghreaderlink}[3][\handbookid]{\href{\openaghreaderroute{#1}{#2}}{#3}}
@@ -309,7 +310,7 @@
 % ######### STYLE #########
 % ### ORANGE ###
 \mdfdefinestyle{openaghdefinition_env}
-{linecolor=orange_border, frametitle=\makebox{\includesvg[]{openagh-module-definition}}\hspace{0.3cm}{\bfseries\sffamily DEFINICJA}, topline=false, bottomline=false, rightline=false, linewidth=1pt, frametitleaboveskip=20pt, backgroundcolor=orange_bg}
+{linecolor=orange_border, frametitle=\makebox{\includesvg[]{\openaghpackagedir/icons/openagh-module-definition}}\hspace{0.3cm}{\bfseries\sffamily DEFINICJA}, topline=false, bottomline=false, rightline=false, linewidth=1pt, frametitleaboveskip=20pt, backgroundcolor=orange_bg}
 
 \mdfdefinestyle{openaghlaw_env}
 {linecolor=orange_border,frametitle=\makebox{\includesvg[]{openagh-module-law}}\hspace{0.3cm}{\bfseries\sffamily PRAWO},topline=false,bottomline=false, rightline=false, linewidth=1pt, frametitleaboveskip=20pt, backgroundcolor=orange_bg}
