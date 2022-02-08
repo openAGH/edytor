@@ -188,7 +188,7 @@ module.exports = LatexRunner = {
       '-outdir=$COMPILE_DIR',
       '-synctex=1',
       '-interaction=batchmode',
-      '-shell-escape',
+      '-shell-escape', // OPENAGH: necessery for svg images support
     ]
     if (flags) {
       args = args.concat(flags)
