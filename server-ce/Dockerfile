@@ -51,17 +51,39 @@ COPY server-ce/init_scripts/ /etc/my_init.d/
 # -----------------------
 COPY server-ce/settings.js /etc/sharelatex/settings.js
 
-# Copy OPENAGH LaTeX package
-COPY server-ce/openagh/ /usr/local/texlive/texmf-local/tex/latex/openagh/
+# OPENAGH: Configuration
 
-# Run script that recreates TeX Live database dependencies - this step makes openagh package visible as LaTeX package
-RUN /usr/local/texlive/2021/texmf-dist/scripts/texlive/mktexlsr
+# Copy OPENAGH LaTeX package
+# -----------------------
+COPY server-ce/openagh/openaghenvironments/ /usr/local/texlive/texmf-local/tex/latex/openagh/
 
 # Install necessery LaTeX packages
-RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile
+# -----------------------
+RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile tex4ht luaxml upquote fontspec tex-gyre microtype kastrup luatexbase luacode
 
 # Install Inkscape for generation pdfs files from svg images
+# -----------------------
 RUN add-apt-repository ppa:inkscape.dev/stable && apt -y install inkscape
+
+# Install make4ht
+# -----------------------
+COPY server-ce/openagh/make4ht/ /usr/local/make4ht
+
+# Install pandoc -necessery for make4ht installation
+# -----------------------
+RUN apt -y install pandoc
+
+RUN make -C /usr/local/make4ht && make install -C /usr/local/make4ht
+
+# Copy latexmkrc configuration file
+# -----------------------
+COPY server-ce/openagh/latexmkrc /etc/
+
+# Run script that recreates TeX Live database dependencies - this step makes openagh package visible in Overleaf system
+# -----------------------
+RUN /usr/local/texlive/2021/texmf-dist/scripts/texlive/mktexlsr
+
+# OPENAGH: END
 
 # Copy grunt thin wrapper
 # -----------------------
@@ -79,7 +101,6 @@ ENV SHARELATEX_APP_NAME "Overleaf Community Edition"
 ENV OPTIMISE_PDF "true"
 
 ENV NODE_ENV "production"
-# ENV NODE_ENV "development"
 ENV LOG_LEVEL "info"
 
 
