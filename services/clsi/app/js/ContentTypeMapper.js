@@ -12,8 +12,10 @@ const Path = require('path')
 module.exports = ContentTypeMapper = {
   map(path) {
     switch (Path.extname(path)) {
-      case '.txt':
+      // OPENAGH: We need to have ability to browse generated HTML
       case '.html':
+        return 'text/html'
+      case '.txt':
       case '.js':
       case '.css':
       case '.svg':
