@@ -1,0 +1,422 @@
+/* OPEN AGH - LaTeX */
+.titlemark {
+    display: none;
+}
+
+figure {
+    text-align: center;
+}
+
+.text-bold {
+    font-weight: 700;
+}
+
+.text-italic {
+    font-style: italic;
+}
+
+body {
+    width: 990px;
+    margin: 0 auto;
+}
+
+/***** wiki-plugins *****/
+.openaghmathjax-numer {
+    float: right;
+}
+
+/***** modul *****/
+.module-exist
+{
+	color: #DB0F0F;
+	display: none;
+	text-align: center;
+}
+.description-image{
+	font-size: 12px;
+	font-style: italic;
+}
+
+.description-source-code{
+	font-size: 12px;
+	font-style: italic;
+	text-align: center;
+}
+
+.description-openaghchemevisualization{
+	font-size: 12px;
+	font-style: italic;
+	text-align: center;
+}
+
+div.openaghsourcecode pre{
+	font-size: 1em;
+}
+
+.ChemDoodleWebComponent{
+	display: block;
+	margin: auto;
+}
+
+.wikitable{
+	margin-left:auto; 
+    margin-right:auto;
+    page-break-inside:avoid;
+}
+.wikicell {
+    border: 2px solid #000000;
+}
+.description-table{
+	font-size: 12px;
+	font-style: italic;
+	text-align: center;
+}
+.openaghdefinition, .openaghlemma, .openaghlaw, .openaghrule, .openaghtheorem, .openaghconclusion, .openaghinformation, .openaghannotation, .openaghproperty, .openaghsummary, .openaghexercise, .openaghexample, .openaghalgorithm, .openaghsimulation, .openaghchemevisualization, .openaghmodel {
+    padding: 20px;
+    margin: 10px 0;
+    page-break-inside:avoid;
+}
+
+.openaghdefinition, .openaghlemma, .openaghlaw, .openaghrule, .openaghtheorem {
+    border-left: 2px solid #ff8a00;
+}
+
+.openaghsimulation, .openaghmodel{
+	border-left: 2px solid #6d6f71;
+}
+
+.openaghconclusion, .openaghinformation, .openaghannotation, .openaghproperty, .openaghalgorithm {
+    border-left: 2px solid #85b200;
+}
+
+.openaghsummary, .openaghexercise, .openaghexample {
+    border-left: 2px solid #1b4e75;
+}
+
+.openaghdefinition-name, .openaghlemma-name, .openaghlaw-name, .openaghrule-name, .openaghtheorem-name, .openaghconclusion-name, .openaghinformation-name, .openaghannotation-name, .openaghproperty-name, .openaghsummary-name, .openaghexercise-name, .openaghexample-name, .openaghalgorithm-name, .openaghsimulation-name, .openaghmodel-name {
+    padding-top: 10px;
+}
+
+.openaghdefinition-data, .openaghlemma-data, .openaghlaw-data, .openaghrule-data, .openaghtheorem-data, .openaghconclusion-data, .openaghinformation-data, .openaghannotation-data, .openaghproperty-data, .openaghsummary-data, .openaghexercise-data, .openaghexample-data, .openaghalgorithm-data, .openaghmodel-data {
+    font-size: 17px;
+}
+.openaghdefinition:before, .openaghlemma:before, .openaghlaw:before, .openaghrule:before, .openaghtheorem:before, .openaghconclusion:before, .openaghinformation:before, .openaghannotation:before, .openaghproperty:before, .openaghsummary:before, .openaghexercise:before, .openaghexample:before, .openaghsimulation:before, .openaghchemevisualization:before, .openaghalgorithm:before, .openaghmodel:before {
+    margin-left: 45px;
+    font-size: 22px;
+}
+
+.openaghdefinition:before, .openaghlemma:before, .openaghlaw:before, .openaghrule:before, .openaghtheorem:before {
+    color: #ff8a00;
+}
+
+.openaghconclusion:before, .openaghinformation:before, .openaghannotation:before, .openaghproperty:before, .openaghalgorithm:before {
+    color: #85b200;
+}
+
+.openaghsummary:before, .openaghexercise:before, .openaghexample:before{
+    color: #1b4e75;
+}
+
+.openaghsimulation:before, .openaghmodel:before{
+	color: #6d6f71;
+}
+
+.openaghmodel-pl:before{
+	content: 'MODEL';
+}
+
+.openaghmodel-en:before{
+	content: 'MODEL';
+}
+
+.openaghsimulation-pl:before{
+	content: 'SYMULACJA';
+}
+
+.openaghsimulation-en:before{
+	content: 'SIMULATION';
+}
+
+.openaghdefinition-pl:before {
+    content: 'DEFINICJA';
+}
+
+.openaghdefinition-en:before {
+    content: 'DEFINITION';
+}
+
+a.openagh-anchor{
+	color:#000;
+}
+
+a.openagh-anchor:empty{
+    /*wkhtmltopdf (QT) removes anchor if it's content is empty or block, solves bug in wikiplugin_img*/
+    display: block;
+}
+
+.openaghlemma-pl:before{
+    content: 'LEMAT';
+}
+
+.openaghlemma-en:before {
+    content: 'LEMMA';
+}
+
+.openaghlaw-pl:before {
+    content: 'PRAWO';
+}
+
+.openaghlaw-en:before {
+    content: 'LAW';
+}
+
+.openaghrule-pl:before {
+    content: 'ZASADA';
+}
+
+.openaghrule-en:before {
+    content: 'RULE';
+}
+
+.openaghtheorem-pl:before {
+    content: 'TWIERDZENIE';
+}
+
+.openaghtheorem-en:before {
+    content: 'THEOREM';
+}
+
+.openaghconclusion-pl:before {
+    content: 'WNIOSEK';
+}
+
+.openaghconclusion-en:before {
+    content: 'CONCLUSION';
+}
+
+.openaghinformation-pl:before {
+    content: 'INFORMACJA DODATKOWA';
+}
+
+.openaghinformation-en:before {
+    content: 'INFORMATION';
+}
+
+.openaghannotation-pl:before {
+    content: 'UWAGA';
+}
+
+.openaghannotation-en:before {
+    content: 'ANNOTATION';
+}
+
+.openaghproperty-pl:before {
+    content: 'WŁASNOŚĆ';
+}
+
+.openaghproperty-en:before {
+    content: 'PROPERTY';
+}
+
+.openaghsummary-pl:before {
+    content: 'PODSUMOWANIE';
+}
+
+.openaghsummary-en:before {
+    content: 'SUMMARY';
+}
+
+.openaghexercise-pl:before {
+    content: 'ZADANIE';
+}
+
+.openaghexercise-en:before {
+    content: 'EXERCISE';
+}
+
+.openaghexample-pl:before {
+    content: 'PRZYKŁAD';
+}
+
+.openaghexample-en:before {
+    content: 'EXAMPLE';
+}
+
+.openaghalgorithm-pl:before {
+	content: 'ALGORYTM';
+}
+
+.openaghalgorithm-en:before {
+	content: 'ALGORITHM';
+}
+
+div.openaghsimulation iframe
+{
+	width: 100%;
+}
+.openaghsimulation{
+	background: #f3f3f3 url('../icons/openagh_icon-symulacja.svg') no-repeat 20px 20px;
+}
+
+.openaghmodel{
+	background: #f3f3f3 url('../icons/openagh_icon-model.svg') no-repeat 20px 20px;
+}
+
+.openaghdefinition {
+    background: #fffbf7 url('../icons/openagh-module-definition.svg') no-repeat 20px 20px;
+}
+
+.openaghlemma {
+    background: #fffbf7 url('../icons/openagh_icon-lemat.svg') no-repeat 20px 20px;
+}
+
+.openaghlaw {
+    background: #fffbf7 url('../icons/openagh_icon-prawo.svg') no-repeat 20px 20px;
+}
+
+.openaghrule {
+    background: #fffbf7 url('../icons/openagh_icon-zasada.svg') no-repeat 20px 20px;
+}
+
+.openaghtheorem {
+    background: #fffbf7 url('../icons/openagh_icon-twierdzenie.svg') no-repeat 20px 20px;
+}
+
+.openaghconclusion {
+    background: #fcfff4 url('../icons/openagh_icon-wniosek.svg') no-repeat 20px 20px;
+}
+
+.openaghinformation {
+    background: #fcfff4 url('../icons/openagh_icon-informacja_dodatkowa.png') no-repeat 20px 20px;
+}
+
+.openaghannotation {
+    background: #fcfff4 url('../icons/openagh_icon-uwaga.svg') no-repeat 20px 20px;
+}
+
+.openaghproperty {
+    background: #fcfff4 url('../icons/openagh_icon-wlasnosc.svg') no-repeat 20px 20px;
+}
+
+.openaghsummary {
+    background: #f7fcff url('../icons/openagh_icon-podsumowanie.svg') no-repeat 20px 20px;
+}
+
+.openaghexercise {
+    background: #f7fcff url('../icons/openagh_icon-zadanie.svg') no-repeat 20px 20px;
+}
+
+.openaghexample {
+    background: #f7fcff url('../icons/openagh-module-example.svg') no-repeat 20px 20px;
+}
+
+.openaghalgorithm {
+	 background: #fcfff4 url('../icons/openagh_icon-algorithm.svg') no-repeat 20px 20px;
+}
+
+#g-recaptcha-response {
+	display: none;
+}
+
+#button-edit {
+	color: #fff;
+	height:28px;
+    background: #9bbe22;
+    border: 1px solid #799029;
+    font-weight: bold;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    -webkit-border-radius: 4px;
+}
+
+#about {
+	margin-right:15px;
+}
+
+#missingRodoConfirmation {
+	color: red;
+}
+
+#wrongPassword {
+	color: red;
+}
+
+#wrongOldPassword {
+	color: red;
+}
+
+#mod-title {
+	font-size: 30px;
+}
+
+#handbook-error {
+	font-size:25px;
+}
+
+
+#openagh-dialog-module-authors, #openagh-dialog-module-editors, #openagh-dialog-module-reviewers, #openagh-dialog-module-coordinators {
+	margin-left:50px;
+}
+
+.openagh-img-help
+{
+	max-width: 380px;
+	height: auto;
+}
+
+.openagh-img-help-paragraph
+{
+	max-width: 340px;
+	height: auto;
+}
+
+div.openagh-info
+{
+	width: 100%
+}
+
+div.openagh-info img
+{
+	display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.pagetitle-description
+{
+	font-size: 12px;
+	font-weight: normal;
+}
+
+
+.description-ogolny {
+	margin-left: 40px;
+	float: left;
+}
+#openagh-podreczniki_view-info-mode {
+position: relative;
+top: 35px;
+}
+
+.handbook-reviewer {
+	padding-left: 84px;
+}
+
+hr.hr_openagh_print {
+    background: #1174a5;
+    color: #1174a5;
+    visibility: visible;
+    height: 2px;
+}
+
+article.article_openagh_print {
+    border-bottom: 0;
+}
+
+ul.toc {
+    border: 0;
+}
+
+.page-new_after_element{
+    page-break-after:always;
+}

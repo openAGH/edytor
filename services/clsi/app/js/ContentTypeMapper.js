@@ -15,10 +15,12 @@ module.exports = ContentTypeMapper = {
       // OPENAGH: We need to have ability to browse generated HTML
       case '.html':
         return 'text/html'
+      case '.css':
+        return 'text/css'
+      case '.svg':
+        return 'image/svg+xml'
       case '.txt':
       case '.js':
-      case '.css':
-      case '.svg':
         return 'text/plain'
       case '.csv':
         return 'text/csv'

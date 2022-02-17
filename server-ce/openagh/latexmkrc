@@ -1,6 +1,7 @@
 # OPENAGH: Whole script is a default latexmk configuraion created by Overleaf.
 # Only lines with "OPENAGH" are added for OPENAGH E-TEXTBOOKS.
-print("##################################HELLIO####################################\n");
+
+
 # Settings
 $xdvipdfmx = "xdvipdfmx -z 6 -o %D %O %S";
 
@@ -17,7 +18,11 @@ my $root_file = $ARGV[-1];
 END {
     # OPENAGH: Generate HTML file
     my $output_dir_html = dirname($root_file);
-    my $makehtml_results = system("make4ht --lua -d $output_dir_html $root_file");
+    my $openaghenvironments_dir = `kpsewhich openaghenvironments.sty`;
+    my $openagh_make4ht_dir = dirname($openaghenvironments_dir) . '/make4ht/';
+    my $openagh_make4ht_config_name = 'div_class_name.cfg';
+    my $openagh_make4ht_config_dir = $openagh_make4ht_dir . 'config/' . $openagh_make4ht_config_name;
+    my $makehtml_results = system("make4ht --lua --shell-escape --config $openagh_make4ht_config_dir -d $output_dir_html $root_file");
     print("makehtml results: $makehtml_results");
     my $NEW_PDF_AGE = -M "output.pdf";
     return if !defined($NEW_PDF_AGE); # bail out if no pdf file
@@ -64,6 +69,7 @@ sub nlo2nls {
 #########
 # Knitr #
 #########
+# OPENAGH: we need this variable before END section therefore this line is commented out
 # my $root_file = $ARGV[-1];
 
 add_cus_dep( 'Rtex', 'tex', 0, 'rtex_to_tex');
