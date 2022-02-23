@@ -58,6 +58,18 @@ COPY server-ce/settings.js /etc/sharelatex/settings.js
 # -----------------------
 COPY server-ce/openagh/openaghenvironments/ /usr/local/texlive/texmf-local/tex/latex/openagh/
 
+# Copy latexmkrc configuration file
+# -----------------------
+COPY server-ce/openagh/latexmkrc /etc/
+
+# Copy OPENAGH styles
+# -----------------------
+COPY server-ce/openagh/styles/ /var/www/sharelatex/web/public/static/openagh/styles/
+
+# Copy OPENAGH icons
+# -----------------------
+COPY server-ce/openagh/openaghenvironments/icons/ /var/www/sharelatex/web/public/static/openagh/icons/
+
 # Install necessery LaTeX packages
 # -----------------------
 RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile tex4ht luaxml upquote fontspec tex-gyre microtype kastrup luatexbase luacode make4ht
@@ -65,10 +77,6 @@ RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xc
 # Install Inkscape for generation pdfs files from svg images
 # -----------------------
 RUN add-apt-repository ppa:inkscape.dev/stable && apt -y install inkscape
-
-# Copy latexmkrc configuration file
-# -----------------------
-COPY server-ce/openagh/latexmkrc /etc/
 
 # Run script that recreates TeX Live database dependencies - this step makes openagh package visible in Overleaf system
 # -----------------------
