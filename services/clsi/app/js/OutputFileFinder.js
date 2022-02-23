@@ -18,7 +18,10 @@ module.exports = OutputFileFinder = {
       }
       const outputFiles = []
       for (const file of allFiles) {
-        if (!incomingResources.has(file)) {
+        if (
+          !incomingResources.has(file) ||
+          file.match(/\.(png|gif|jpeg|jpg|eps|jbig2|jpeg_2000|pdf|svg)$/) // OPENAGH: makes images visible as output files, it is neccessery from HTML perspective due to proper img src attribute
+        ) {
           outputFiles.push({
             path: file,
             type: Path.extname(file).replace(/^\./, '') || undefined,
