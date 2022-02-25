@@ -24,7 +24,7 @@ END {
     my $openagh_make4ht_build_file_name = 'openagh_build.mk4';
     my $openagh_make4ht_config_dir = $openagh_make4ht_dir . 'config/' . $openagh_make4ht_config_name;
     my $openagh_make4ht_build_dir = $openagh_make4ht_dir . $openagh_make4ht_build_file_name;
-    my $makehtml_results = system("make4ht --lua --shell-escape --config $openagh_make4ht_config_dir --build-file $openagh_make4ht_build_dir -d $output_dir_html $root_file \"mathjax\"";
+    my $makehtml_results = system("make4ht --loglevel debug --lua --shell-escape --config $openagh_make4ht_config_dir --build-file $openagh_make4ht_build_dir -d $output_dir_html $root_file \"mathjax\"";
     print("makehtml results: $makehtml_results");
     my $NEW_PDF_AGE = -M "output.pdf";
     return if !defined($NEW_PDF_AGE); # bail out if no pdf file
