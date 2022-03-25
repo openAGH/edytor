@@ -13,6 +13,7 @@ services:
                 condition: service_started
         ports:
             - 80:80
+            - 3050:3050
         links:
             - mongo
             - redis
