@@ -34,6 +34,10 @@ module.exports = {
 		OpenAghApiController.registerUser
 	  ),
 	  apiRouter.get(
+		'/openaghhelper/change-password',
+		OpenAghApiController._setNewPassword
+	  ),
+	  apiRouter.get(
 		'/openaghhelper/create-user',
 		OpenAghApiController.createUser
 	  ),

@@ -71,6 +71,36 @@ const OpenAghApiController = {
         res.send("createUser");
 	},
 
+	_setNewPassword(req, res) {
+		const newPassword = 'test_xd';
+		UserGetter.getUserByAnyEmail(
+			'sebek1113@gmail.com',
+			(err, user) => {
+				if (err != null) {
+					res.send("Error getting user.");
+					return false;
+				}
+
+				AuthenticationManager.setUserPassword(
+					user,
+					newPassword,
+					(err, updatedUser) => {
+						if (null != err) {
+							console.log(err);
+							res.status(503).send("Error occured while attempting to confirm new user email.");
+						}
+			
+						if (null === updatedUser || undefined === updatedUser) {
+							res.status(403).send("Cannot set password for new user.");
+						}
+
+						res.send("password successfully changed!");
+					}
+				);
+			}
+		)
+	},
+
     createUser(req, res) {
 		const newUserAttr = {
 			email: 'testowy-email2@agh.edu.pl',
