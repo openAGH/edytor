@@ -21,24 +21,6 @@ const ProjectDeleter = require('../Project/ProjectDeleter');
 const OpenAghApiController = {
 	login(req, res) {
 		let dataResponse = '', getRecived = false;
-
-		// fetch('http://localhost/login')
-		// 	.then(response => console.log(response));
-		// http.request('http://localhost/login', (resG) => {
-		// 	console.log({
-		// 		resG
-		// 	});
-		// 	resG.on('data', (chunk) => {
-		// 		console.log("BODY: " + chunk);
-		// 		dataResponse = chunk;
-		// 		getRecived = true;
-		// 		res.send(dataResponse);
-		// 	});
-		// });
-
-		// if (getRecived) {
-		// 	return res.send(dataResponse);
-		// }
 	},
 
 	registerUser(req, res) {
@@ -49,25 +31,6 @@ const OpenAghApiController = {
                     return false;
                 }
             );
-		// let dataResponse = '', getRecived = false;
-
-		// fetch('http://localhost/login')
-		// 	.then(response => console.log(response));
-		// http.request('http://localhost/login', (resG) => {
-		// 	console.log({
-		// 		resG
-		// 	});
-		// 	resG.on('data', (chunk) => {
-		// 		console.log("BODY: " + chunk);
-		// 		dataResponse = chunk;
-		// 		getRecived = true;
-		// 		res.send(dataResponse);
-		// 	});
-		// });
-
-		// if (getRecived) {
-		// 	return res.send(dataResponse);
-		// }
         res.send("createUser");
 	},
 
@@ -152,33 +115,6 @@ const OpenAghApiController = {
 				}
 			);
 		});
-        // UserRegistrationHandler.registerNewUserAndSendActivationEmail(
-        //         'test@agh.edu.pl',
-        //         (err, user, setNewPasswordUrl) => {
-        //             console.log({err, user, setNewPasswordUrl});
-        //             return false;
-        //         }
-        //     );
-		// let dataResponse = '', getRecived = false;
-
-		// fetch('http://localhost/login')
-		// 	.then(response => console.log(response));
-		// http.request('http://localhost/login', (resG) => {
-		// 	console.log({
-		// 		resG
-		// 	});
-		// 	resG.on('data', (chunk) => {
-		// 		console.log("BODY: " + chunk);
-		// 		dataResponse = chunk;
-		// 		getRecived = true;
-		// 		res.send(dataResponse);
-		// 	});
-		// });
-
-		// if (getRecived) {
-		// 	return res.send(dataResponse);
-		// }
-        // res.send("NOT IMPLEMENTED!");
 	},
 
 	addUser2Project(req, res) {
@@ -256,37 +192,6 @@ const OpenAghApiController = {
 		);
 	},
 
-	getProjectJson(req, res) {
-		const projectId = "61af0fbbeddbbe008f0864f0";
-		ProjectGetter.getProject(
-			projectId,
-			(err,  project) => {
-				if (err != null) {
-					console.log(err);
-					return res.send("Error occured during getting project from database.");
-				}
-				ProjectEntityHandler.getAllEntitiesFromProject(
-					project,
-					(err, docs, files) => {
-						if (err != null) {
-							console.log(err);
-							return res.send("Error occured during creating project json.");
-						}
-						const entities = docs
-							.concat(files)
-							// Sort by path ascending
-							.sort((a, b) => (a.path > b.path ? 1 : a.path < b.path ? -1 : 0))
-							.map(e => ({
-								path: e.path,
-								type: e.doc != null ? 'doc' : 'file',
-							}));
-						res.json({ project_id: projectId, entities });
-					}
-				);
-			}
-		);
-	},
-
 	getProject(req, res) {
 		// const projectId = "62260670cb369e008f21b400";
 		const projectId = "61af0fbbeddbbe008f0864f0";
@@ -315,32 +220,6 @@ const OpenAghApiController = {
 						}
 					});
 				});
-				// ProjectLocator.findElement(
-				// 	{ project_id: projectId, element_id: doc._id, type: 'doc' },
-				// 	(err, file, path, searchFolder) => {
-				// 		console.log("found file:");
-				// 		console.log(file);
-				// 		console.log('path:');
-				// 		console.log(path);
-				// 		console.log('searchFolder:'); 
-				// 		console.log(searchFolder);
-				// 	}
-				// );
-				// FileStoreHandler.getFileStream(
-				// 	projectId, 
-				// 	doc._id, 
-				// 	null, 
-				// 	(err, readStream) => {
-				// 		console.log("readStream START");
-				// 		console.log(readStream);
-				// 		http.request(readStream.uri.href, (res) => {
-				// 			console.log("RES");
-				// 			console.log(res);
-				// 			console.log("BODY");
-				// 			console.log("readStream END");
-				// 		});
-				// 	}
-				// );
 			});
 		});
 		ProjectEntityHandler.getAllFiles(projectId, (err, files) => {
@@ -391,6 +270,37 @@ const OpenAghApiController = {
 						)
 					}
 			  )
+			}
+		);
+	},
+
+	getProjectJson(req, res) {
+		const projectId = "61af0fbbeddbbe008f0864f0";
+		ProjectGetter.getProject(
+			projectId,
+			(err,  project) => {
+				if (err != null) {
+					console.log(err);
+					return res.send("Error occured during getting project from database.");
+				}
+				ProjectEntityHandler.getAllEntitiesFromProject(
+					project,
+					(err, docs, files) => {
+						if (err != null) {
+							console.log(err);
+							return res.send("Error occured during creating project json.");
+						}
+						const entities = docs
+							.concat(files)
+							// Sort by path ascending
+							.sort((a, b) => (a.path > b.path ? 1 : a.path < b.path ? -1 : 0))
+							.map(e => ({
+								path: e.path,
+								type: e.doc != null ? 'doc' : 'file',
+							}));
+						res.json({ project_id: projectId, entities });
+					}
+				);
 			}
 		);
 	},
@@ -468,7 +378,7 @@ const OpenAghApiController = {
 		}
 	},
 
-	async deleteAllAdminProjects(req, res) {
+	async _deleteAllAdminProjects(req, res) {
 		// const projectId = "62260670cb369e008f21b400";
 		admin_id = "61af0f73eddbbe008f0864c8";
 		try {
