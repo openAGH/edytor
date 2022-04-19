@@ -1,4 +1,4 @@
-const OpenAghApiController = require('./OpenAghApiOpenAghApiController.js');
+const OpenAghApiController = require('./OpenAghApiController.js');
 const RateLimiterMiddleware = require('../Security/RateLimiterMiddleware');
 
 module.exports = {
