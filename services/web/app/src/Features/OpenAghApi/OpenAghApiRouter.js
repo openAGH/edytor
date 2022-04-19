@@ -4,31 +4,31 @@ const RateLimiterMiddleware = require('../Security/RateLimiterMiddleware');
 module.exports = {
 	apply(apiRouter) {
 	  apiRouter.get(
-		'/openaghhelper/login',
+		'/openaghhelper/user/login',
 		OpenAghApiController.login
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/register-user',
+		'/openaghhelper/user/register-user',
 		OpenAghApiController.registerUser
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/change-password',
+		'/openaghhelper/user/change-password',
 		OpenAghApiController._setNewPassword
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/create-user',
+		'/openaghhelper/user/create-user',
 		OpenAghApiController.createUser
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/add-user-to-project',
+		'/openaghhelper/user/add-user-to-project',
 		OpenAghApiController.addUser2Project
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/create-project',
+		'/openaghhelper/project/create',
 		OpenAghApiController.createProject
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/get-project',
+		'/openaghhelper/project',
 		OpenAghApiController.getProject
 	  ),
 	  apiRouter.get(
@@ -50,7 +50,7 @@ module.exports = {
 		OpenAghApiController.uploadAllProjects
 	  ),
 	  apiRouter.get(
-		'/openaghhelper/admin/project/delete/all',
+		'/openaghhelper/project/delete/all',
 		OpenAghApiController._deleteAllAdminProjects
 	  )
 	}
