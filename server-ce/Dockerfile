@@ -72,7 +72,7 @@ COPY server-ce/openagh/openaghenvironments/icons/ /var/www/sharelatex/web/public
 
 # Install necessery LaTeX packages
 # -----------------------
-RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile tex4ht luaxml upquote fontspec tex-gyre microtype kastrup luatexbase luacode make4ht
+RUN tlmgr install mdframed etoolbox zref needspace svg koma-script trimspaces xcolor transparent pgf import qrcode xkeyval adjustbox collectbox showlabels float ulem listings environ catchfile tex4ht luaxml upquote fontspec tex-gyre microtype kastrup luatexbase luacode make4ht mhchem
 
 # Install Inkscape for generation pdfs files from svg images
 # -----------------------
@@ -80,7 +80,7 @@ RUN add-apt-repository ppa:inkscape.dev/stable && apt -y install inkscape
 
 # Run script that recreates TeX Live database dependencies - this step makes openagh package visible in Overleaf system
 # -----------------------
-RUN /usr/local/texlive/2021/texmf-dist/scripts/texlive/mktexlsr
+RUN /usr/local/texlive/2022/texmf-dist/scripts/texlive/mktexlsr
 
 # OPENAGH: END
 # ----------------------------------------------------------------------------------------------------
