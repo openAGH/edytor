@@ -305,25 +305,29 @@ const OpenAghApiController = {
 		);
 	},
 
-	uploadProject(req, res) {
+	async uploadProject(req, res) {
 		// const projectId = "62260670cb369e008f21b400";
-		user_id = "61af0f73eddbbe008f0864c8";
-		name = "test_2";
-		path = "/var/tmp/test.zip";
-
-		ProjectUploadManager.createProjectFromZipArchive(
-			user_id, 
-			name, 
-			path, 
-			(err, project) => {
-				if(err != null)
-					return res.status(503).json({
-						error: true,
-						message: error.message
-					});
-				return res.send({ error: false, project_id: project._id })
-			}
-		)
+		const user_id = "61af0f73eddbbe008f0864c8",
+			name = "Zastosowanie_prawa_Amperea_cewka",
+			path = `/var/tmp/${name}.zip`,
+			attr = {
+				compiler: "lualatex"
+			};
+		let project;
+		try {
+			project = await ProjectUploadManager.promises.createProjectFromZipArchiveWithName(
+				user_id, 
+				name, 
+				path,
+				attr
+			);
+		} catch (err) {
+			return res.status(503).json({
+				error: true,
+				message: err.message
+			});
+		}
+		return res.send({ error: false, project });
 	},
 
 	async uploadAllProjects(req, res) {
@@ -353,10 +357,11 @@ const OpenAghApiController = {
 				}
 				try {
 					project = await ProjectUploadManager.promises.createProjectFromZipArchiveWithName(
-							user_id, 
-							Path.basename(project_arch, '.zip'), 
-							Path.join(import_path, project_arch)
-						);
+						user_id, 
+						Path.basename(project_arch, '.zip'), 
+						Path.join(import_path, project_arch),
+						{compiler: "lualatex"}
+					);
 				} catch(err) {
 					return res.status(503).json({
 						error: true, 
