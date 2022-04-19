@@ -52,6 +52,7 @@ const SystemMessageController = require('./Features/SystemMessages/SystemMessage
 const AnalyticsRegistrationSourceMiddleware = require('./Features/Analytics/AnalyticsRegistrationSourceMiddleware')
 const AnalyticsUTMTrackingMiddleware = require('./Features/Analytics/AnalyticsUTMTrackingMiddleware')
 const SplitTestMiddleware = require('./Features/SplitTests/SplitTestMiddleware')
+const OpenAghApiRouter = require('./Features/OpenAghApi/OpenAghApiRouter')
 const { Joi, validate } = require('./infrastructure/Validation')
 const {
   renderUnsupportedBrowserPage,
@@ -120,6 +121,7 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
   LinkedFilesRouter.apply(webRouter, privateApiRouter, publicApiRouter)
   TemplatesRouter.apply(webRouter)
   UserMembershipRouter.apply(webRouter)
+  OpenAghApiRouter.apply(publicApi)
 
   Modules.applyRouter(webRouter, privateApiRouter, publicApiRouter)
 
