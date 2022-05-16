@@ -143,7 +143,7 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
   LinkedFilesRouter.apply(webRouter, privateApiRouter, publicApiRouter)
   TemplatesRouter.apply(webRouter)
   UserMembershipRouter.apply(webRouter)
-  OpenAghApiRouter.apply(publicApi)
+  OpenAghApiRouter.apply(publicApiRouter)
 
   Modules.applyRouter(webRouter, privateApiRouter, publicApiRouter)
 
