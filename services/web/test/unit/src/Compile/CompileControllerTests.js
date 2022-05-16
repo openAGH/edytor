@@ -49,7 +49,7 @@ describe('CompileController', function () {
     }
     this.jar = { cookie: 'stuff' }
     this.ClsiCookieManager = {
-      getCookieJar: sinon.stub().callsArgWith(2, null, this.jar),
+      getCookieJar: sinon.stub().yields(null, this.jar),
     }
     this.SessionManager = {
       getLoggedInUser: sinon.stub().callsArgWith(1, null, this.user),
@@ -784,7 +784,7 @@ describe('CompileController', function () {
         .yields(null, { content: 'body' })
       this.req.params = { Project_id: this.project_id }
       this.req.query = { clsiserverid: 'node-42' }
-      this.res.send = sinon.stub()
+      this.res.json = sinon.stub()
       this.res.contentType = sinon.stub()
       return this.CompileController.wordCount(this.req, this.res, this.next)
     })
@@ -796,7 +796,7 @@ describe('CompileController', function () {
     })
 
     it('should return a 200 and body', function () {
-      return this.res.send.calledWith({ content: 'body' }).should.equal(true)
+      return this.res.json.calledWith({ content: 'body' }).should.equal(true)
     })
   })
 })

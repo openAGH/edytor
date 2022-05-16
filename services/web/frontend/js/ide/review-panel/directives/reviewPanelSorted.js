@@ -25,6 +25,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
         i,
         original_top,
         overflowTop,
+        screenPosHeight,
         OVERVIEW_TOGGLE_HEIGHT,
         PADDING,
         TOOLBAR_HEIGHT,
@@ -89,17 +90,22 @@ export default App.directive('reviewPanelSorted', $timeout => ({
 
       sl_console.log('focused_entry_index', focused_entry_index)
 
-      const positionLayoutEl = function ($callout_el, original_top, top) {
+      const positionLayoutEl = function (
+        $callout_el,
+        original_top,
+        top,
+        height
+      ) {
         if (original_top <= top) {
           $callout_el.removeClass('rp-entry-callout-inverted')
           return $callout_el.css({
-            top: original_top + line_height - 1,
+            top: original_top + height - 1,
             height: top - original_top,
           })
         } else {
           $callout_el.addClass('rp-entry-callout-inverted')
           return $callout_el.css({
-            top: top + line_height,
+            top: top + height,
             height: original_top - top,
           })
         }
@@ -117,15 +123,21 @@ export default App.directive('reviewPanelSorted', $timeout => ({
         visibility: 'visible',
       })
       focused_entry.$indicator_el.css({ top: focused_entry_top })
+      // use screenPos.height if set
+      screenPosHeight =
+        focused_entry.scope.entry.screenPos.height ?? line_height
       positionLayoutEl(
         focused_entry.$callout_el,
         focused_entry.scope.entry.screenPos.y,
-        focused_entry_top
+        focused_entry_top,
+        screenPosHeight
       )
 
       let previousBottom = focused_entry_top + focused_entry.$layout_el.height()
       for (entry of Array.from(entries_after)) {
         original_top = entry.scope.entry.screenPos.y
+        // use screenPos.height if set
+        screenPosHeight = entry.scope.entry.screenPos.height ?? line_height
         ;({ height } = entry)
         top = Math.max(original_top, previousBottom + PADDING)
         previousBottom = top + height
@@ -136,7 +148,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
           visibility: 'visible',
         })
         entry.$indicator_el.css({ top })
-        positionLayoutEl(entry.$callout_el, original_top, top)
+        positionLayoutEl(entry.$callout_el, original_top, top, screenPosHeight)
         sl_console.log('ENTRY', { entry: entry.scope.entry, top })
       }
 
@@ -147,6 +159,8 @@ export default App.directive('reviewPanelSorted', $timeout => ({
       for (i = 0; i < entries_before.length; i++) {
         entry = entries_before[i]
         original_top = entry.scope.entry.screenPos.y
+        // use screenPos.height if set
+        screenPosHeight = entry.scope.entry.screenPos.height ?? line_height
         ;({ height } = entry)
         const original_bottom = original_top + height
         const bottom = Math.min(original_bottom, previousTop - PADDING)
@@ -159,7 +173,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
           visibility: 'visible',
         })
         entry.$indicator_el.css({ top })
-        positionLayoutEl(entry.$callout_el, original_top, top)
+        positionLayoutEl(entry.$callout_el, original_top, top, screenPosHeight)
         sl_console.log('ENTRY', { entry: entry.scope.entry, top })
       }
 
@@ -169,6 +183,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
       } else {
         overflowTop = 0
       }
+
       return scope.$emit('review-panel:sizes', {
         overflowTop,
         height: previousBottom + OVERVIEW_TOGGLE_HEIGHT,
@@ -203,6 +218,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
         const old_top = parseInt(list.css('top'))
         const top = old_top - deltaY * 4
         scrollAce(-top)
+        dispatchScrollEvent(-top)
         return e.preventDefault()
       })
 
@@ -215,6 +231,7 @@ export default App.directive('reviewPanelSorted', $timeout => ({
       if (ignoreNextAceEvent) {
         return (ignoreNextAceEvent = false)
       } else {
+        // TODO: unused?
         const ignoreNextPanelEvent = true
         list.height(height)
         // console.log({height, scrollTop, top: height - scrollTop})
@@ -227,6 +244,22 @@ export default App.directive('reviewPanelSorted', $timeout => ({
 
     scope.reviewPanelEventsBridge.on('aceScroll', scrollPanel)
     scope.$on('$destroy', () => scope.reviewPanelEventsBridge.off('aceScroll'))
+
+    // receive the scroll position from the CodeMirror 6 track changes extension
+    window.addEventListener('editor:scroll', event => {
+      const { scrollTop, height } = event.detail
+
+      scrollPanel(scrollTop, height)
+    })
+
+    // send the scroll position to the CodeMirror 6 track changes extension
+    const dispatchScrollEvent = value => {
+      window.dispatchEvent(
+        new CustomEvent('review-panel:event', {
+          detail: { type: 'scroll', payload: value },
+        })
+      )
+    }
 
     return scope.reviewPanelEventsBridge.emit('refreshScrollPosition')
   },

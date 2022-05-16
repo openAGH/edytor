@@ -15,6 +15,7 @@
 const SandboxedModule = require('sandboxed-module')
 const { assert, expect } = require('chai')
 const sinon = require('sinon')
+const Errors = require('../../../../app/src/Features/Errors/Errors')
 const modulePath = '../../../../app/src/Features/References/ReferencesHandler'
 
 describe('ReferencesHandler', function () {
@@ -64,9 +65,10 @@ describe('ReferencesHandler', function () {
         '../User/UserGetter': (this.UserGetter = {
           getUser: sinon.stub(),
         }),
-        '../DocumentUpdater/DocumentUpdaterHandler': (this.DocumentUpdaterHandler = {
-          flushDocToMongo: sinon.stub().callsArgWith(2, null),
-        }),
+        '../DocumentUpdater/DocumentUpdaterHandler':
+          (this.DocumentUpdaterHandler = {
+            flushDocToMongo: sinon.stub().callsArgWith(2, null),
+          }),
         '../../infrastructure/Features': (this.Features = {
           hasFeature: sinon.stub().returns(true),
         }),
@@ -192,6 +194,28 @@ describe('ReferencesHandler', function () {
         return this.call((err, data) => {
           expect(err).to.not.equal(null)
           expect(err).to.be.instanceof(Error)
+          expect(data).to.equal(undefined)
+          return done()
+        })
+      })
+
+      it('should not send request', function (done) {
+        return this.call((err, data) => {
+          this.request.post.callCount.should.equal(0)
+          return done()
+        })
+      })
+    })
+
+    describe('when ProjectGetter.getProject returns null', function () {
+      beforeEach(function () {
+        return this.ProjectGetter.getProject.callsArgWith(2, null)
+      })
+
+      it('should produce an error', function (done) {
+        return this.call((err, data) => {
+          expect(err).to.not.equal(null)
+          expect(err).to.be.instanceof(Errors.NotFoundError)
           expect(data).to.equal(undefined)
           return done()
         })
@@ -375,6 +399,28 @@ describe('ReferencesHandler', function () {
         return this.call((err, data) => {
           expect(err).to.not.equal(null)
           expect(err).to.be.instanceof(Error)
+          expect(data).to.equal(undefined)
+          return done()
+        })
+      })
+
+      it('should not send request', function (done) {
+        return this.call((err, data) => {
+          this.request.post.callCount.should.equal(0)
+          return done()
+        })
+      })
+    })
+
+    describe('when ProjectGetter.getProject returns null', function () {
+      beforeEach(function () {
+        return this.ProjectGetter.getProject.callsArgWith(2, null)
+      })
+
+      it('should produce an error', function (done) {
+        return this.call((err, data) => {
+          expect(err).to.not.equal(null)
+          expect(err).to.be.instanceof(Errors.NotFoundError)
           expect(data).to.equal(undefined)
           return done()
         })

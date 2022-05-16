@@ -10,7 +10,7 @@ function errSerializer(err) {
     stack: err.stack && OError.getFullStack(err),
     info: OError.getFullInfo(err),
     code: err.code,
-    signal: err.signal
+    signal: err.signal,
   }
 }
 
@@ -26,21 +26,23 @@ function reqSerializer(req) {
     headers: {
       referer: headers.referer || headers.referrer,
       'user-agent': headers['user-agent'],
-      'content-length': headers['content-length']
+      'content-length': headers['content-length'],
+    },
+  }
+  if (req.params) {
+    const projectId =
+      req.params.projectId || req.params.project_id || req.params.Project_id
+    const userId = req.params.userId || req.params.user_id
+    const docId = req.params.docId || req.params.doc_id
+    if (projectId) {
+      entry.projectId = projectId
     }
-  }
-  const projectId =
-    req.params.projectId || req.params.project_id || req.params.Project_id
-  const userId = req.params.userId || req.params.user_id
-  const docId = req.params.docId || req.params.doc_id
-  if (projectId) {
-    entry.projectId = projectId
-  }
-  if (userId) {
-    entry.userId = userId
-  }
-  if (docId) {
-    entry.docId = docId
+    if (userId) {
+      entry.userId = userId
+    }
+    if (docId) {
+      entry.docId = docId
+    }
   }
   return entry
 }
@@ -52,8 +54,8 @@ function resSerializer(res) {
   return {
     statusCode: res.statusCode,
     headers: {
-      'content-length': res.getHeader && res.getHeader('content-length')
-    }
+      'content-length': res.getHeader && res.getHeader('content-length'),
+    },
   }
 }
 

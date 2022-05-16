@@ -31,14 +31,20 @@ describe('LaunchpadController', function () {
     this.User = {}
     this.LaunchpadController = SandboxedModule.require(modulePath, {
       requires: {
-        '@overleaf/settings': (this.Settings = {}),
+        '@overleaf/settings': (this.Settings = {
+          adminPrivilegeAvailable: true,
+        }),
         '@overleaf/metrics': (this.Metrics = {}),
-        '../../../../app/src/Features/User/UserRegistrationHandler': (this.UserRegistrationHandler = {}),
-        '../../../../app/src/Features/Email/EmailHandler': (this.EmailHandler = {}),
+        '../../../../app/src/Features/User/UserRegistrationHandler':
+          (this.UserRegistrationHandler = {}),
+        '../../../../app/src/Features/Email/EmailHandler': (this.EmailHandler =
+          {}),
         '../../../../app/src/Features/User/UserGetter': (this.UserGetter = {}),
         '../../../../app/src/models/User': { User: this.User },
-        '../../../../app/src/Features/Authentication/AuthenticationController': (this.AuthenticationController = {}),
-        '../../../../app/src/Features/Authentication/SessionManager': (this.SessionManager = {}),
+        '../../../../app/src/Features/Authentication/AuthenticationController':
+          (this.AuthenticationController = {}),
+        '../../../../app/src/Features/Authentication/SessionManager':
+          (this.SessionManager = {}),
       },
     })
 

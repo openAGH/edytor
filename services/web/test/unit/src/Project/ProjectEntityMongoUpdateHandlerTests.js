@@ -74,9 +74,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
     this.DeletedFileMock = sinon.mock(DeletedFile)
     this.ProjectMock = sinon.mock(Project)
     this.ProjectEntityHandler = {
-      promises: {
-        getAllEntitiesFromProject: sinon.stub(),
-      },
+      getAllEntitiesFromProject: sinon.stub(),
     }
     this.ProjectLocator = {
       promises: {
@@ -212,7 +210,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
       const doc = { _id: ObjectId(), name: 'other.txt' }
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          {
+            _id: this.project._id,
+            'rootFolder.0.folders.0': { $exists: true },
+          },
           {
             $push: { 'rootFolder.0.folders.0.docs': doc },
             $inc: { version: 1 },
@@ -249,7 +250,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
       this.newFile = { _id: ObjectId(), name: 'picture.jpg' }
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          {
+            _id: this.project._id,
+            'rootFolder.0.folders.0': { $exists: true },
+          },
           {
             $push: { 'rootFolder.0.folders.0.fileRefs': this.newFile },
             $inc: { version: 1 },
@@ -316,7 +320,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
       })
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          {
+            _id: this.project._id,
+            'rootFolder.0.folders.0': { $exists: true },
+          },
           {
             $push: {
               'rootFolder.0.folders.0.folders': sinon.match({
@@ -362,7 +369,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
       // Update the file in place
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          {
+            _id: this.project._id,
+            'rootFolder.0.fileRefs.0': { $exists: true },
+          },
           {
             $set: {
               'rootFolder.0.fileRefs.0._id': newFile._id,
@@ -440,7 +450,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
         this.exactCaseMatch = false
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            { _id: this.project._id, 'rootFolder.0': { $exists: true } },
             {
               $push: { 'rootFolder.0.folders': this.newFolder },
               $inc: { version: 1 },
@@ -483,7 +493,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
         this.FolderModel.returns(this.newFolder)
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            {
+              _id: this.project._id,
+              'rootFolder.0.folders.0': { $exists: true },
+            },
             {
               $push: {
                 'rootFolder.0.folders.0.folders': sinon.match({
@@ -554,7 +567,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
           })
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            {
+              _id: this.project._id,
+              'rootFolder.0.folders.0': { $exists: true },
+            },
             {
               $push: {
                 'rootFolder.0.folders.0.folders': sinon.match({
@@ -568,7 +584,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
           .resolves(this.project)
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            {
+              _id: this.project._id,
+              'rootFolder.0.folders.0.folders.0': { $exists: true },
+            },
             {
               $push: {
                 'rootFolder.0.folders.0.folders.0.folders': sinon.match({
@@ -635,16 +654,19 @@ describe('ProjectEntityMongoUpdateHandler', function () {
         this.newDocs = ['new-doc']
         this.newFiles = ['new-file']
 
-        this.ProjectEntityHandler.promises.getAllEntitiesFromProject
+        this.ProjectEntityHandler.getAllEntitiesFromProject
           .onFirstCall()
-          .resolves({ docs: this.oldDocs, files: this.oldFiles })
-        this.ProjectEntityHandler.promises.getAllEntitiesFromProject
+          .returns({ docs: this.oldDocs, files: this.oldFiles })
+        this.ProjectEntityHandler.getAllEntitiesFromProject
           .onSecondCall()
-          .resolves({ docs: this.newDocs, files: this.newFiles })
+          .returns({ docs: this.newDocs, files: this.newFiles })
 
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            {
+              _id: this.project._id,
+              'rootFolder.0.folders.0': { $exists: true },
+            },
             {
               $push: { 'rootFolder.0.folders.0.docs': this.doc },
               $inc: { version: 1 },
@@ -751,16 +773,16 @@ describe('ProjectEntityMongoUpdateHandler', function () {
         this.newDocs = ['new-doc']
         this.newFiles = ['new-file']
 
-        this.ProjectEntityHandler.promises.getAllEntitiesFromProject
+        this.ProjectEntityHandler.getAllEntitiesFromProject
           .onFirstCall()
-          .resolves({ docs: this.oldDocs, files: this.oldFiles })
-        this.ProjectEntityHandler.promises.getAllEntitiesFromProject
+          .returns({ docs: this.oldDocs, files: this.oldFiles })
+        this.ProjectEntityHandler.getAllEntitiesFromProject
           .onSecondCall()
-          .resolves({ docs: this.newDocs, files: this.newFiles })
+          .returns({ docs: this.newDocs, files: this.newFiles })
 
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            { _id: this.project._id, 'rootFolder.0.docs.0': { $exists: true } },
             {
               $set: { 'rootFolder.0.docs.0.name': this.newName },
               $inc: { version: 1 },
@@ -818,7 +840,10 @@ describe('ProjectEntityMongoUpdateHandler', function () {
           this.newFile = { _id: ObjectId(), name: 'new file.png' }
           this.ProjectMock.expects('findOneAndUpdate')
             .withArgs(
-              { _id: this.project._id },
+              {
+                _id: this.project._id,
+                'rootFolder.0.folders.0': { $exists: true },
+              },
               {
                 $push: { 'rootFolder.0.folders.0.fileRefs': this.newFile },
                 $inc: { version: 1 },
@@ -948,7 +973,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
         this.newFile = { _id: ObjectId(), name: 'new file.png' }
         this.ProjectMock.expects('findOneAndUpdate')
           .withArgs(
-            { _id: this.project._id },
+            { _id: this.project._id, 'rootFolder.0': { $exists: true } },
             {
               $push: { 'rootFolder.0.fileRefs': this.newFile },
               $inc: { version: 1 },
@@ -1047,7 +1072,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
     it('should simultaneously remove the doc and add the file', async function () {
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          { _id: this.project._id, 'rootFolder.0': { $exists: true } },
           {
             $pull: { 'rootFolder.0.docs': { _id: this.doc._id } },
             $push: { 'rootFolder.0.fileRefs': this.file },
@@ -1070,7 +1095,7 @@ describe('ProjectEntityMongoUpdateHandler', function () {
     it('should simultaneously remove the file and add the doc', async function () {
       this.ProjectMock.expects('findOneAndUpdate')
         .withArgs(
-          { _id: this.project._id },
+          { _id: this.project._id, 'rootFolder.0': { $exists: true } },
           {
             $pull: { 'rootFolder.0.fileRefs': { _id: this.file._id } },
             $push: { 'rootFolder.0.docs': this.doc },

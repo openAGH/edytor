@@ -14,6 +14,7 @@ describe('AuthorizationMiddleware', function () {
     this.token = 'some-token'
     this.AuthenticationController = {}
     this.SessionManager = {
+      getSessionUser: sinon.stub().returns(null),
       getLoggedInUserId: sinon.stub().returns(this.userId),
       isUserLoggedIn: sinon.stub().returns(true),
     }
@@ -38,10 +39,13 @@ describe('AuthorizationMiddleware', function () {
       requires: {
         './AuthorizationManager': this.AuthorizationManager,
         '../Errors/HttpErrorHandler': this.HttpErrorHandler,
-        '../Authentication/AuthenticationController': this
-          .AuthenticationController,
+        '../Authentication/AuthenticationController':
+          this.AuthenticationController,
         '../Authentication/SessionManager': this.SessionManager,
         '../TokenAccess/TokenAccessHandler': this.TokenAccessHandler,
+        '../Helpers/AdminAuthorizationHelper': {
+          canRedirectToAdminDomain: sinon.stub().returns(false),
+        },
       },
     })
     this.req = {

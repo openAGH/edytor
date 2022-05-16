@@ -15,17 +15,27 @@ export default function useDetachState(
   const {
     role,
     broadcastEvent,
+    lastDetachedConnectedAt,
     addEventHandler,
     deleteEventHandler,
   } = useDetachContext()
 
   const eventName = `state-${key}`
 
+  // lastDetachedConnectedAt is added as a dependency in order to re-broadcast
+  // all states when a new detached tab connects
   useEffect(() => {
     if (role === senderRole) {
       broadcastEvent(eventName, { value })
     }
-  }, [role, senderRole, eventName, value, broadcastEvent])
+  }, [
+    role,
+    senderRole,
+    eventName,
+    value,
+    broadcastEvent,
+    lastDetachedConnectedAt,
+  ])
 
   const handleStateEvent = useCallback(
     message => {

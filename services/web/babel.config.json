@@ -1,5 +1,6 @@
 {
   "presets": [
+    "@babel/typescript",
     [
       "@babel/react",
       {
@@ -10,7 +11,8 @@
       "@babel/env",
       {
         "useBuiltIns": "usage",
-        "corejs": { "version": 3 }
+        // This version must be aligned with the `core-js` version in `package.json`
+        "corejs": { "version": 3.6 }
       }
     ]
   ],
@@ -20,6 +22,7 @@
   "env": {
     "test": {
       "presets": [
+        "@babel/typescript",
         [
           "@babel/react",
           {
@@ -29,9 +32,10 @@
         [
           "@babel/env",
           {
-            "targets": { "node": "12.21" },
+            "targets": { "node": "14.18" },
             "useBuiltIns": "usage",
-            "corejs": { "version": 3 }
+            // This version must be aligned with the `core-js` version in `package.json`
+            "corejs": { "version": 3.6 }
           }
         ]
       ]

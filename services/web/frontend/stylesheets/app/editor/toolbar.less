@@ -20,7 +20,8 @@
     }
   }
 
-  .toolbar-right {
+  .toolbar-right,
+  .toolbar-left {
     button {
       background: transparent;
       box-shadow: none;
@@ -221,6 +222,12 @@
   }
 }
 
+.toolbar-header-upgrade-prompt {
+  @media (max-width: @screen-md-min) {
+    display: none;
+  }
+}
+
 .editor-dark {
   .toolbar-alt {
     background-color: darken(@editor-dark-background-color, 0%);
@@ -251,33 +258,49 @@
 ***************************************/
 
 .toggle-wrapper {
-  min-width: 200px;
+  white-space: nowrap;
   height: 24px;
 }
 
 .toggle-switch {
-  position: relative;
-  height: 100%;
-  width: 100%;
-  background-color: @toggle-switch-bg;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  margin-right: 5px;
   border-radius: @btn-border-radius-base;
+  overflow: hidden;
 }
 
 .toggle-switch-label {
-  position: relative;
-  display: block;
-  font-weight: normal;
-  z-index: 2;
+  display: inline-block;
   float: left;
-  width: 50%;
+  font-weight: normal;
   height: 100%;
-  line-height: 24px;
   text-align: center;
-  margin-bottom: 0;
+  margin: 0;
   cursor: pointer;
   user-select: none;
   color: @text-color;
   transition: color 0.12s ease-out;
+  overflow: hidden;
+
+  span {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    line-height: 20px; // parent height minus border
+    width: 100%;
+    padding: 0 15px;
+    background: linear-gradient(
+      to right,
+      @toggle-switch-bg 50%,
+      @toggle-switch-highlight-color 50%
+    );
+
+    background-size: 200% 100%;
+    background-position: 0 0;
+    transition: background-position 0.12s ease-out;
+  }
 }
 
 .toggle-switch-input {
@@ -286,27 +309,50 @@
 }
 
 .toggle-switch-input:checked + .toggle-switch-label {
-  color: #fff;
+  span {
+    background-position: -100% 0;
+  }
+  color: @white;
   font-weight: bold;
 }
 
-.toggle-switch-selection {
-  display: block;
-  position: absolute;
-  z-index: 1;
-  top: 2px;
-  left: 2px;
-  right: 2px;
-  width: calc(~'50% - 2px');
-  height: calc(~'100% - 4px');
-  background: @toggle-switch-highlight-color;
-  border-radius: @btn-border-radius-base 0 0 @btn-border-radius-base;
-  transition: transform 0.12s ease-out, border-radius 0.12s ease-out;
+.toggle-switch-input:checked:nth-child(2) + .toggle-switch-label {
+  span {
+    background-position: 100% 0;
+  }
 }
 
-.toggle-switch-input:checked:nth-child(4) ~ .toggle-switch-selection {
-  transform: translate(100%);
-  border-radius: 0 @btn-border-radius-base @btn-border-radius-base 0;
+.editor-toggle-switch {
+  display: flex;
+  align-items: center;
+
+  .toggle-switch {
+    margin-left: 5px;
+  }
+
+  .toggle-switch-label span {
+    padding: 1px 6px;
+    background: none;
+    transition: background 0.12s ease-out;
+    border-right: 1px solid @ol-blue-gray-2;
+  }
+
+  .toggle-switch-label:first-of-type span {
+    padding-left: 8px;
+  }
+
+  .toggle-switch-label:last-of-type span {
+    padding-right: 8px;
+    border-right: none;
+  }
+
+  .toggle-switch-input + .toggle-switch-label {
+    background: @toggle-switch-bg;
+  }
+
+  .toggle-switch-input:checked + .toggle-switch-label {
+    background: @toggle-switch-highlight-color;
+  }
 }
 
 /**************************************

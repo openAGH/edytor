@@ -4,7 +4,6 @@ include ./plans-marketing/_mixins
 include ./plans-marketing/_tables
 
 block vars
-	- metadata = { viewport: true }
 	- entrypoint = 'pages/user/subscription/plans'
 
 block append meta
@@ -15,15 +14,6 @@ block append meta
 
 block content
 	main.content.content-alt#main-content
-		.container
-			.user-notifications
-				ul.list-unstyled(ng-cloak)
-					li.notification-entry
-						.alert.alert-info
-							.notification-body
-								span To help you work from home throughout 2021, we're providing discounted plans and special initiatives.
-							.notification-action
-								a.btn.btn-sm.btn-info(href="https://www.overleaf.com/events/wfh2021" event-tracking="Event-Pages" event-tracking-trigger="click" event-tracking-ga="WFH-Offer-Click" event-tracking-label="Plans-Banner") Upgrade
 		.content-page
 			.plans
 				.container(ng-cloak)
@@ -63,6 +53,7 @@ block content
 								a.btn.btn-default(
 									href="#groups"
 									data-ol-open-group-plan-modal
+									data-ol-location='callout'
 								) #{translate('find_out_more')}
 
 					.row.row-spaced-large

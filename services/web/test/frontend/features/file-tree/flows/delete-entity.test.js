@@ -14,11 +14,17 @@ describe('FileTree Delete Entity Flow', function () {
   const onSelect = sinon.stub()
   const onInit = sinon.stub()
 
+  beforeEach(function () {
+    window.metaAttributesCache = new Map()
+    window.metaAttributesCache.set('ol-user', { id: 'user1' })
+  })
+
   afterEach(function () {
     fetchMock.restore()
     onSelect.reset()
     onInit.reset()
     cleanUpContext()
+    window.metaAttributesCache = new Map()
   })
 
   describe('single entity', function () {
@@ -26,6 +32,7 @@ describe('FileTree Delete Entity Flow', function () {
       const rootFolder = [
         {
           _id: 'root-folder-id',
+          name: 'rootFolder',
           docs: [{ _id: '456def', name: 'main.tex' }],
           folders: [],
           fileRefs: [],
@@ -33,10 +40,6 @@ describe('FileTree Delete Entity Flow', function () {
       ]
       renderWithEditorContext(
         <FileTreeRoot
-          rootFolder={rootFolder}
-          projectId="123abc"
-          hasWritePermissions
-          userHasFeature={() => true}
           refProviders={{}}
           reindexReferences={() => null}
           setRefProviderEnabled={() => null}
@@ -45,7 +48,11 @@ describe('FileTree Delete Entity Flow', function () {
           onInit={onInit}
           isConnected
         />,
-        { socket: new MockedSocket() }
+        {
+          socket: new MockedSocket(),
+          rootFolder,
+          projectId: '123abc',
+        }
       )
 
       const treeitem = screen.getByRole('treeitem', { name: 'main.tex' })
@@ -136,6 +143,8 @@ describe('FileTree Delete Entity Flow', function () {
     beforeEach(function () {
       const rootFolder = [
         {
+          _id: 'root-folder-id',
+          name: 'rootFolder',
           docs: [{ _id: '456def', name: 'main.tex' }],
           folders: [
             {
@@ -151,10 +160,6 @@ describe('FileTree Delete Entity Flow', function () {
       ]
       renderWithEditorContext(
         <FileTreeRoot
-          rootFolder={rootFolder}
-          projectId="123abc"
-          hasWritePermissions
-          userHasFeature={() => true}
           refProviders={{}}
           reindexReferences={() => null}
           setRefProviderEnabled={() => null}
@@ -163,7 +168,11 @@ describe('FileTree Delete Entity Flow', function () {
           onInit={onInit}
           isConnected
         />,
-        { socket: new MockedSocket() }
+        {
+          socket: new MockedSocket(),
+          rootFolder,
+          projectId: '123abc',
+        }
       )
 
       const expandButton = screen.queryByRole('button', { name: 'Expand' })
@@ -201,6 +210,7 @@ describe('FileTree Delete Entity Flow', function () {
       const rootFolder = [
         {
           _id: 'root-folder-id',
+          name: 'rootFolder',
           docs: [{ _id: '456def', name: 'main.tex' }],
           folders: [],
           fileRefs: [{ _id: '789ghi', name: 'my.bib' }],
@@ -209,10 +219,6 @@ describe('FileTree Delete Entity Flow', function () {
 
       renderWithEditorContext(
         <FileTreeRoot
-          rootFolder={rootFolder}
-          projectId="123abc"
-          hasWritePermissions
-          userHasFeature={() => true}
           refProviders={{}}
           reindexReferences={() => null}
           setRefProviderEnabled={() => null}
@@ -221,7 +227,11 @@ describe('FileTree Delete Entity Flow', function () {
           onInit={onInit}
           isConnected
         />,
-        { socket: new MockedSocket() }
+        {
+          socket: new MockedSocket(),
+          rootFolder,
+          projectId: '123abc',
+        }
       )
 
       // select two files

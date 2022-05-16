@@ -59,7 +59,7 @@
 		li(ng-class="{active: (filter == 'shared')}", ng-click="filterProjects('shared')")
 			a(href) #{translate("shared_with_you")}
 		li(ng-class="{active: (filter == 'archived')}", ng-click="filterProjects('archived')")
-			a(href) #{settings.overleaf ? translate("archived_projects") : translate("deleted_projects")}
+			a(href) #{translate("archived_projects")}
 		li(ng-class="{active: (filter == 'trashed')}", ng-click="filterProjects('trashed')")
 			a(href) #{translate("trashed_projects")}
 		li.separator
@@ -134,16 +134,12 @@ if (isOverleaf)
 						href="/user/settings"
 					) Add Affiliation
 
-		//- .row-spaced(ng-if="hasProjects && userHasNoSubscription && !userOnPayingUniversity", ng-cloak).text-centered
-		//- 	hr
-		//- 	p.small #{translate("on_free_sl")}
-		//- 	p
-		//- 		a(href="/user/subscription/plans" ng-click="upgradeSubscription()").btn.btn-primary #{translate("upgrade")}
-		//- 	p.small.text-centered
-		//- 		| #{translate("or_unlock_features_bonus")} 
-		//- 		a(href="/user/bonus" ng-click="share()") #{translate("sharing_sl")}.
-		.row-spaced(ng-if="hasProjects && userHasNoSubscription && !userOnPayingUniversity", ng-cloak).text-centered
-			hr
-			p.small To help you work from home throughout 2021, we're providing discounted plans and special initiatives.
-			p
-				a(href="https://www.overleaf.com/events/wfh2021" event-tracking="Event-Pages" event-tracking-trigger="click" event-tracking-ga="WFH-Offer-Click" event-tracking-label="Dash-Sidebar").btn.btn-primary Upgrade
+		unless (showToolbarUpgradePrompt)
+			.row-spaced(ng-if="hasProjects && userHasNoSubscription && !userOnPayingUniversity", ng-cloak).text-centered
+				hr
+				p.small #{translate("on_free_sl")}
+				p
+					a(href="/user/subscription/plans" ng-click="upgradeSubscription()").btn.btn-primary #{translate("upgrade")}
+				p.small.text-centered
+					| #{translate("or_unlock_features_bonus")} 
+					a(href="/user/bonus" ng-click="share()") #{translate("sharing_sl")}.

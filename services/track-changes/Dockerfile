@@ -2,22 +2,25 @@
 # Instead run bin/update_build_scripts from
 # https://github.com/sharelatex/sharelatex-dev-environment
 
-FROM node:14.18.1 as base
+FROM node:16.14.2 as base
 
-WORKDIR /app
+WORKDIR /overleaf/services/track-changes
+
+# Google Cloud Storage needs a writable $HOME/.config for resumable uploads
+# (see https://googleapis.dev/nodejs/storage/latest/File.html#createWriteStream)
+RUN mkdir /home/node/.config && chown node:node /home/node/.config
 
 FROM base as app
 
-#wildcard as some files may not be in all repos
-COPY package*.json npm-shrink*.json /app/
+COPY package.json package-lock.json /overleaf/
+COPY services/track-changes/package.json /overleaf/services/track-changes/
+COPY libraries/ /overleaf/libraries/
 
-RUN npm ci --quiet
+RUN cd /overleaf && npm ci --quiet
 
-COPY . /app
+COPY services/track-changes/ /overleaf/services/track-changes/
 
-FROM base
-
-COPY --from=app /app /app
+FROM app
 USER node
 
 CMD ["node", "--expose-gc", "app.js"]

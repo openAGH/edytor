@@ -216,6 +216,13 @@ module.exports = {
       url: `http://${process.env.WEBPACK_HOST || 'localhost'}:3808`,
     },
 
+    haveIBeenPwned: {
+      enabled: process.env.HAVE_I_BEEN_PWNED_ENABLED === 'true',
+      url:
+        process.env.HAVE_I_BEEN_PWNED_URL || 'https://api.pwnedpasswords.com',
+      timeout: parseInt(process.env.HAVE_I_BEEN_PWNED_TIMEOUT, 10) || 5 * 1000,
+    },
+
     // For legacy reasons, we need to populate the below objects.
     v1: {},
     recurly: {},
@@ -276,6 +283,12 @@ module.exports = {
     bcryptRounds: parseInt(process.env.BCRYPT_ROUNDS, 10) || 12,
   }, // number of rounds used to hash user passwords (raised to power 2)
 
+  adminUrl: process.env.ADMIN_URL,
+  adminOnlyLogin: process.env.ADMIN_ONLY_LOGIN === 'true',
+  adminPrivilegeAvailable: process.env.ADMIN_PRIVILEGE_AVAILABLE === 'true',
+  blockCrossOriginRequests: process.env.BLOCK_CROSS_ORIGIN_REQUESTS === 'true',
+  allowedOrigins: (process.env.ALLOWED_ORIGINS || siteUrl).split(','),
+
   httpAuthUsers,
 
   // Default features
@@ -312,7 +325,7 @@ module.exports = {
     {
       planCode: 'personal',
       name: 'Personal',
-      price: 0,
+      price_in_cents: 0,
       features: defaultFeatures,
     },
   ],
@@ -416,6 +429,8 @@ module.exports = {
     'zh-CN': '简体中文',
   },
 
+  maxDictionarySize: 1024 * 1024, // 1 MB
+
   // Password Settings
   // -----------
   // These restrict the passwords users can use when registering
@@ -426,6 +441,19 @@ module.exports = {
       // Bcrypt does not support longer passwords than that.
       max: 72,
     },
+  },
+
+  elevateAccountSecurityAfterFailedLogin:
+    parseInt(process.env.ELEVATED_ACCOUNT_SECURITY_AFTER_FAILED_LOGIN_MS, 10) ||
+    24 * 60 * 60 * 1000,
+
+  deviceHistory: {
+    cookieName: process.env.DEVICE_HISTORY_COOKIE_NAME || 'deviceHistory',
+    entryExpiry:
+      parseInt(process.env.DEVICE_HISTORY_ENTRY_EXPIRY_MS, 10) ||
+      30 * 24 * 60 * 60 * 1000,
+    maxEntries: parseInt(process.env.DEVICE_HISTORY_MAX_ENTRIES, 10) || 10,
+    secret: process.env.DEVICE_HISTORY_SECRET,
   },
 
   // Email support
@@ -513,6 +541,8 @@ module.exports = {
   // Maximum size of text documents in the real-time editing system.
   max_doc_length: 2 * 1024 * 1024, // 2mb
 
+  primary_email_check_expiration: 1000 * 60 * 60 * 24 * 90, // 90 days
+
   // Maximum JSON size in HTTP requests
   // We should be able to process twice the max doc length, to allow for
   //   - the doc content
@@ -575,7 +605,7 @@ module.exports = {
 
     right_footer: [
       {
-        text: "<i class='fa fa-github-square'></i> Fork on Github!",
+        text: "<i class='fa fa-github-square'></i> Fork on GitHub!",
         url: 'https://github.com/overleaf/overleaf',
       },
     ],
@@ -588,6 +618,9 @@ module.exports = {
   //   header_extras: [{text: "Some Page", url: "http://example.com/some/page", class: "subdued"}]
 
   recaptcha: {
+    endpoint:
+      process.env.RECAPTCHA_ENDPOINT ||
+      'https://www.google.com/recaptcha/api/siteverify',
     disabled: {
       invite: true,
       login: true,
@@ -738,12 +771,15 @@ module.exports = {
     tprLinkedFileRefreshError: [],
     contactUsModal: [],
     editorToolbarButtons: [],
+    sourceEditorExtensions: [],
+    sourceEditorComponents: [],
+    integrationLinkingWidgets: [],
+    referenceLinkingWidgets: [],
   },
 
   moduleImportSequence: ['launchpad', 'server-ce-scripts', 'user-activate'],
 
   csp: {
-    percentage: parseFloat(process.env.CSP_PERCENTAGE) || 0,
     enabled: process.env.CSP_ENABLED === 'true',
     reportOnly: process.env.CSP_REPORT_ONLY === 'true',
     reportPercentage: parseFloat(process.env.CSP_REPORT_PERCENTAGE) || 0,

@@ -12,6 +12,7 @@ const ProjectDetailsHandler = require('../Project/ProjectDetailsHandler')
 const ProjectEntityUpdateHandler = require('../Project/ProjectEntityUpdateHandler')
 const RestoreManager = require('./RestoreManager')
 const { pipeline } = require('stream')
+const { prepareZipAttachment } = require('../../infrastructure/Response')
 
 module.exports = HistoryController = {
   selectHistoryApi(req, res, next) {
@@ -328,7 +329,7 @@ module.exports = HistoryController = {
   },
 
   _pipeHistoryZipToResponse(v1ProjectId, version, name, req, res, next) {
-    if (req.aborted) {
+    if (req.destroyed) {
       // client has disconnected -- skip project history api call and download
       return
     }
@@ -364,7 +365,7 @@ module.exports = HistoryController = {
           )
         }
       }
-      if (req.aborted) {
+      if (req.destroyed) {
         // client has disconnected -- skip delayed s3 download
         return
       }
@@ -384,7 +385,7 @@ module.exports = HistoryController = {
         40,
         callback =>
           setTimeout(function () {
-            if (req.aborted) {
+            if (req.destroyed) {
               // client has disconnected -- skip s3 download
               return callback() // stop async.retry loop
             }
@@ -399,10 +400,10 @@ module.exports = HistoryController = {
               sendImmediately: true,
             })
             const abortS3Request = () => getReq.abort()
-            req.on('aborted', abortS3Request)
+            req.on('close', abortS3Request)
             res.on('timeout', abortS3Request)
             function cleanupAbortTrigger() {
-              req.off('aborted', abortS3Request)
+              req.off('close', abortS3Request)
               res.off('timeout', abortS3Request)
             }
             getReq.on('response', function (response) {
@@ -414,10 +415,7 @@ module.exports = HistoryController = {
               delete response.headers['content-disposition']
               delete response.headers['content-type']
               res.status(response.statusCode)
-              res.setContentDisposition('attachment', {
-                filename: `${name}.zip`,
-              })
-              res.contentType('application/zip')
+              prepareZipAttachment(res, `${name}.zip`)
               pipeline(response, res, err => {
                 if (err) {
                   logger.warn(

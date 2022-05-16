@@ -41,17 +41,15 @@ async function refreshFeatures(userId, reason) {
   const features = await computeFeatures(userId)
   logger.log({ userId, features }, 'updating user features')
 
-  const matchedFeatureSet = _getMatchedFeatureSet(features)
+  const matchedFeatureSet = FeaturesHelper.getMatchedFeatureSet(features)
   AnalyticsManager.setUserPropertyForUser(
     userId,
     'feature-set',
     matchedFeatureSet
   )
 
-  const {
-    features: newFeatures,
-    featuresChanged,
-  } = await UserFeaturesUpdater.promises.updateFeatures(userId, features)
+  const { features: newFeatures, featuresChanged } =
+    await UserFeaturesUpdater.promises.updateFeatures(userId, features)
   if (oldFeatures.dropbox === true && features.dropbox === false) {
     logger.log({ userId }, '[FeaturesUpdater] must unlink dropbox')
     const Modules = require('../../infrastructure/Modules')
@@ -70,12 +68,15 @@ async function refreshFeatures(userId, reason) {
 async function computeFeatures(userId) {
   const individualFeatures = await _getIndividualFeatures(userId)
   const groupFeatureSets = await _getGroupFeatureSets(userId)
-  const institutionFeatures = await InstitutionsFeatures.promises.getInstitutionsFeatures(
-    userId
-  )
-  const v1Features = await _getV1Features(userId)
+  const institutionFeatures =
+    await InstitutionsFeatures.promises.getInstitutionsFeatures(userId)
+  const user = await UserGetter.promises.getUser(userId, {
+    featuresOverrides: 1,
+    'overleaf.id': 1,
+  })
+  const v1Features = await _getV1Features(user)
   const bonusFeatures = await ReferalFeatures.promises.getBonusFeatures(userId)
-  const featuresOverrides = await _getFeaturesOverrides(userId)
+  const featuresOverrides = await _getFeaturesOverrides(user)
   logger.log(
     {
       userId,
@@ -117,10 +118,7 @@ async function _getGroupFeatureSets(userId) {
   return (subs || []).map(_subscriptionToFeatures)
 }
 
-async function _getFeaturesOverrides(userId) {
-  const user = await UserGetter.promises.getUser(userId, {
-    featuresOverrides: 1,
-  })
+async function _getFeaturesOverrides(user) {
   if (!user || !user.featuresOverrides || user.featuresOverrides.length === 0) {
     return {}
   }
@@ -141,24 +139,9 @@ async function _getFeaturesOverrides(userId) {
   return features
 }
 
-async function _getV1Features(userId) {
-  let planCode, v1Id
-  try {
-    ;({
-      planCode,
-      v1Id,
-    } = await V1SubscriptionManager.promises.getPlanCodeFromV1(userId))
-  } catch (err) {
-    if (err.name === 'NotFoundError') {
-      return {}
-    } else {
-      throw err
-    }
-  }
-  return FeaturesHelper.mergeFeatures(
-    V1SubscriptionManager.getGrandfatheredFeaturesForV1User(v1Id) || {},
-    _planCodeToFeatures(planCode)
-  )
+async function _getV1Features(user) {
+  const v1Id = user?.overleaf?.id
+  return V1SubscriptionManager.getGrandfatheredFeaturesForV1User(v1Id) || {}
 }
 
 function _subscriptionToFeatures(subscription) {
@@ -192,15 +175,6 @@ async function doSyncFromV1(v1UserId) {
     '[AccountSync] updating user subscription and features'
   )
   return refreshFeatures(user._id, 'sync-v1')
-}
-
-function _getMatchedFeatureSet(features) {
-  for (const [name, featureSet] of Object.entries(Settings.features)) {
-    if (_.isEqual(features, featureSet)) {
-      return name
-    }
-  }
-  return 'mixed'
 }
 
 module.exports = {

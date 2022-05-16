@@ -121,9 +121,10 @@ describe('ProjectDetailsHandler', function () {
     it('should make a call to mongo just for the description', async function () {
       this.ProjectGetter.promises.getProject.resolves()
       await this.handler.promises.getProjectDescription(this.project._id)
-      expect(
-        this.ProjectGetter.promises.getProject
-      ).to.have.been.calledWith(this.project._id, { description: true })
+      expect(this.ProjectGetter.promises.getProject).to.have.been.calledWith(
+        this.project._id,
+        { description: true }
+      )
     })
 
     it('should return what the mongo call returns', async function () {
@@ -184,6 +185,17 @@ describe('ProjectDetailsHandler', function () {
         .rejected
       expect(this.TpdsUpdateSender.promises.moveEntity).not.to.have.been.called
       expect(this.ProjectModel.updateOne).not.to.have.been.called
+    })
+
+    it('should trim whitespace around name', async function () {
+      await this.handler.promises.renameProject(
+        this.project._id,
+        `   ${this.newName}   `
+      )
+      expect(this.ProjectModel.updateOne).to.have.been.calledWith(
+        { _id: this.project._id },
+        { name: this.newName }
+      )
     })
   })
 

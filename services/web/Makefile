@@ -1,16 +1,16 @@
-DOCKER_COMPOSE_FLAGS ?= -f docker-compose.yml --log-level ERROR
+DOCKER_COMPOSE_FLAGS ?= -f docker-compose.yml
 
 BUILD_NUMBER ?= local
 BRANCH_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 PROJECT_NAME = web
 BUILD_DIR_NAME = $(shell pwd | xargs basename | tr -cd '[a-zA-Z0-9_.\-]')
 
-export SHARELATEX_CONFIG ?= /app/test/acceptance/config/settings.test.saas.js
+export SHARELATEX_CONFIG ?= /overleaf/services/web/test/acceptance/config/settings.test.saas.js
 export BASE_CONFIG ?= ${SHARELATEX_CONFIG}
 
-CFG_SAAS=/app/test/acceptance/config/settings.test.saas.js
-CFG_SERVER_CE=/app/test/acceptance/config/settings.test.server-ce.js
-CFG_SERVER_PRO=/app/test/acceptance/config/settings.test.server-pro.js
+CFG_SAAS=/overleaf/services/web/test/acceptance/config/settings.test.saas.js
+CFG_SERVER_CE=/overleaf/services/web/test/acceptance/config/settings.test.server-ce.js
+CFG_SERVER_PRO=/overleaf/services/web/test/acceptance/config/settings.test.server-pro.js
 
 DOCKER_COMPOSE := BUILD_NUMBER=$(BUILD_NUMBER) \
 	BRANCH_NAME=$(BRANCH_NAME) \
@@ -29,6 +29,27 @@ $(MODULE_MAKEFILES): Makefile.module
 # Clean
 #
 
+clean:
+	-$(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=unit_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=unit_test_all_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=unit_test_parallel_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=unit_test_parallel_make_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_test_saas_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_test_server_ce_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_test_server_pro_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_saas_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_saas_1_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_saas_2_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_saas_3_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_saas_4_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_server_ce_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=acceptance_modules_merged_server_pro_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=karma_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=karma_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=frontend_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+	-COMPOSE_PROJECT_NAME=tar_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down --rmi local
+
 clean_ci:
 	$(DOCKER_COMPOSE) down -v -t 0
 	docker container list | grep 'days ago' | cut -d ' ' -f 1 - | xargs -r docker container stop
@@ -39,7 +60,7 @@ clean_ci:
 # Tests
 #
 
-test: test_unit test_karma test_acceptance test_frontend
+test: test_unit test_karma test_acceptance test_frontend test_frontend_ct
 
 test_module: test_unit_module test_acceptance_module
 
@@ -87,14 +108,6 @@ test_unit_app_parallel_gnu_make_docker:
 		make test_unit_app_parallel_gnu_make --output-sync -j $(J)
 	$(DOCKER_COMPOSE) down -v -t 0
 
-test_unit_app_parallel: test_unit_app_parallel_gnu_parallel
-test_unit_app_parallel_gnu_parallel: export COMPOSE_PROJECT_NAME = \
-	unit_test_parallel_$(BUILD_DIR_NAME)
-test_unit_app_parallel_gnu_parallel:
-	$(DOCKER_COMPOSE) down -v -t 0
-	$(DOCKER_COMPOSE) run --rm test_unit npm run test:unit:app:parallel
-	$(DOCKER_COMPOSE) down -v -t 0
-
 TEST_UNIT_MODULES = $(MODULE_DIRS:=/test_unit)
 $(TEST_UNIT_MODULES): %/test_unit: %/Makefile
 test_unit_modules: $(TEST_UNIT_MODULES)
@@ -123,6 +136,15 @@ test_frontend:
 	COMPOSE_PROJECT_NAME=frontend_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down -v -t 0
 	COMPOSE_PROJECT_NAME=frontend_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) run --rm test_frontend
 	COMPOSE_PROJECT_NAME=frontend_test_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down -v -t 0
+
+#
+# Frontend component tests in Cypress
+#
+
+test_frontend_ct:
+	COMPOSE_PROJECT_NAME=frontend_test_ct_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down -v -t 0
+	COMPOSE_PROJECT_NAME=frontend_test_ct_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) run --rm test_frontend_ct
+	COMPOSE_PROJECT_NAME=frontend_test_ct_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) down -v -t 0
 
 #
 # Acceptance tests
@@ -163,7 +185,7 @@ $(TEST_ACCEPTANCE_APP):
 #  Target: modules/server-ce-scripts/test_acceptance_server_ce
 #    -> depends on modules/server-ce-scripts/Makefile
 #    -> add environment variable BASE_CONFIG=$(CFG_SERVER_CE)
-#    -> BASE_CONFIG=/app/test/acceptance/config/settings.test.server-ce.js
+#    -> BASE_CONFIG=/overleaf/services/web/test/acceptance/config/settings.test.server-ce.js
 #    -> automatic target: `make -C server-ce-scripts test_acceptance_server_ce`
 #    -> automatic target: run `make test_acceptance_server_ce` in module
 #  Target: modules/server-ce-scripts/Makefile
@@ -338,7 +360,7 @@ ORG_PATH = /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 RUN_LINT_FORMAT ?= \
 	docker run --rm ci/$(PROJECT_NAME):$(BRANCH_NAME)-$(BUILD_NUMBER)
 
-NODE_MODULES_PATH := ${PATH}:${PWD}/node_modules/.bin:/app/node_modules/.bin
+NODE_MODULES_PATH := ${PATH}:${PWD}/node_modules/.bin:/overleaf/services/web/node_modules/.bin
 WITH_NODE_MODULES_PATH = \
 	format_backend \
 	format_frontend \
@@ -354,17 +376,17 @@ $(WITH_NODE_MODULES_PATH): export PATH=$(NODE_MODULES_PATH)
 lint: lint_backend
 lint_backend:
 	npx eslint \
-		app.js \
-		'app/**/*.js' \
-		'modules/*/index.js' \
-		'modules/*/app/**/*.js' \
+		'app.{js,ts,tsx}' \
+		'app/**/*.{js,ts,tsx}' \
+		'modules/*/index.{js,ts,tsx}' \
+		'modules/*/app/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint: lint_frontend
 lint_frontend:
 	npx eslint \
-		'frontend/**/*.js' \
-		'modules/*/frontend/**/*.js' \
+		'frontend/**/*.{js,ts,tsx}' \
+		'modules/**/frontend/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint: lint_test
@@ -372,34 +394,34 @@ lint_test: lint_test_app
 lint_test_app: lint_test_app_unit
 lint_test_app_unit:
 	npx eslint \
-		'test/unit/**/*.js' \
+		'test/unit/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint_test_app: lint_test_app_rest
 lint_test_app_rest:
 	npx eslint \
-		'test/**/*.js' \
-		--ignore-pattern 'test/unit/**/*.js' \
+		'test/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'test/unit/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint_test: lint_test_modules
 lint_test_modules:
 	npx eslint \
-		'modules/*/test/**/*.js' \
+		'modules/*/test/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint: lint_misc
 # migrations, scripts, webpack config, karma config
 lint_misc:
 	npx eslint . \
-		--ignore-pattern app.js \
-		--ignore-pattern 'app/**/*.js' \
-		--ignore-pattern 'modules/*/app/**/*.js' \
-		--ignore-pattern 'modules/*/index.js' \
-		--ignore-pattern 'frontend/**/*.js' \
-		--ignore-pattern 'modules/*/frontend/**/*.js' \
-		--ignore-pattern 'test/**/*.js' \
-		--ignore-pattern 'modules/*/test/**/*.js' \
+		--ignore-pattern 'app.{js,ts,tsx}' \
+		--ignore-pattern 'app/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'modules/*/app/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'modules/*/index.{js,ts,tsx}' \
+		--ignore-pattern 'frontend/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'modules/**/frontend/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'test/**/*.{js,ts,tsx}' \
+		--ignore-pattern 'modules/*/test/**/*.{js,ts,tsx}' \
 		--max-warnings=0
 
 lint: lint_pug
@@ -409,6 +431,14 @@ lint_pug:
 lint: lint_locales
 lint_locales:
 	bin/lint_locales
+
+lint: lint_flag_res_send_usage
+lint_flag_res_send_usage:
+	bin/lint_flag_res_send_usage
+
+#lint: typecheck_frontend
+typecheck_frontend:
+	npx tsc --noEmit
 
 lint_in_docker:
 	$(RUN_LINT_FORMAT) make lint -j --output-sync
@@ -450,7 +480,8 @@ build_deps:
 		--cache-from $(IMAGE_REPO_MASTER)-deps \
 		--tag $(IMAGE_REPO_BRANCH)-deps \
 		--target deps \
-		.
+		--file Dockerfile \
+		../..
 
 build_dev:
 	docker build \
@@ -460,7 +491,8 @@ build_dev:
 		--tag $(IMAGE_CI) \
 		--tag $(IMAGE_CI)-dev \
 		--target dev \
-		.
+		--file Dockerfile \
+		../..
 
 build_webpack:
 	$(MAKE) build_webpack_once \
@@ -473,7 +505,8 @@ build_webpack_once:
 		--cache-from $(IMAGE_CI)-webpack \
 		--tag $(IMAGE_CI)-webpack \
 		--target webpack \
-		.
+		--file Dockerfile \
+		../..
 
 build:
 	docker build \
@@ -481,7 +514,8 @@ build:
 		--cache-from $(IMAGE_CI)-webpack \
 		--cache-from $(IMAGE_REPO_FINAL) \
 		--tag $(IMAGE_REPO_FINAL) \
-		.
+		--file Dockerfile \
+		../..
 
 build_test_karma:
 	COMPOSE_PROJECT_NAME=karma_$(BUILD_DIR_NAME) $(DOCKER_COMPOSE) build test_karma

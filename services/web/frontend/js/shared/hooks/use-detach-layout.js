@@ -11,19 +11,18 @@ const LINKING_TIMEOUT = 60000
 const RELINK_TIMEOUT = 10000
 
 export default function useDetachLayout() {
-  const {
-    role,
-    setRole,
-    broadcastEvent,
-    addEventHandler,
-    deleteEventHandler,
-  } = useDetachContext()
+  const { role, setRole, broadcastEvent, addEventHandler, deleteEventHandler } =
+    useDetachContext()
 
   // isLinking: when the tab expects to be linked soon (e.g. on detach)
   const [isLinking, setIsLinking] = useState(false)
 
   // isLinked: when the tab is linked to another tab (of different role)
   const [isLinked, setIsLinked] = useState(false)
+
+  // isRedundant: when a second detacher tab is opened, the first becomes
+  // redundant
+  const [isRedundant, setIsRedundant] = useState(false)
 
   const uiTimeoutRef = useRef()
 
@@ -33,6 +32,15 @@ export default function useDetachLayout() {
     }
     setIsLinking(false)
   }, [isLinked, setIsLinking])
+
+  useEffect(() => {
+    if (debugPdfDetach) {
+      console.log('Effect', { role, isLinked })
+    }
+    if (role === 'detached' && isLinked) {
+      eventTracking.sendMB('project-layout-detached')
+    }
+  }, [role, isLinked])
 
   useEffect(() => {
     if (uiTimeoutRef.current) {
@@ -72,11 +80,23 @@ export default function useDetachLayout() {
   }, [setRole, setIsLinked, broadcastEvent])
 
   const detach = useCallback(() => {
+    setIsRedundant(false)
     setRole('detacher')
     setIsLinking(true)
 
-    window.open(buildUrlWithDetachRole('detached'), '_blank')
+    window.open(buildUrlWithDetachRole('detached').toString(), '_blank')
   }, [setRole, setIsLinking])
+
+  const handleEventForDetacherFromDetacher = useCallback(() => {
+    if (debugPdfDetach) {
+      console.log(
+        'Duplicate detacher detected, turning into a regular editor again'
+      )
+    }
+    setIsRedundant(true)
+    setIsLinked(false)
+    setRole(null)
+  }, [setRole, setIsLinked])
 
   const handleEventForDetacherFromDetached = useCallback(
     message => {
@@ -118,7 +138,7 @@ export default function useDetachLayout() {
     [setIsLinked, broadcastEvent]
   )
 
-  const handleEventFromSelf = useCallback(
+  const handleEventForDetachedFromDetached = useCallback(
     message => {
       switch (message.event) {
         case 'closed':
@@ -133,7 +153,7 @@ export default function useDetachLayout() {
     message => {
       if (role === 'detacher') {
         if (message.role === 'detacher') {
-          handleEventFromSelf(message)
+          handleEventForDetacherFromDetacher(message)
         } else if (message.role === 'detached') {
           handleEventForDetacherFromDetached(message)
         }
@@ -141,15 +161,16 @@ export default function useDetachLayout() {
         if (message.role === 'detacher') {
           handleEventForDetachedFromDetacher(message)
         } else if (message.role === 'detached') {
-          handleEventFromSelf(message)
+          handleEventForDetachedFromDetached(message)
         }
       }
     },
     [
       role,
+      handleEventForDetacherFromDetacher,
       handleEventForDetacherFromDetached,
       handleEventForDetachedFromDetacher,
-      handleEventFromSelf,
+      handleEventForDetachedFromDetached,
     ]
   )
 
@@ -164,5 +185,6 @@ export default function useDetachLayout() {
     isLinked,
     isLinking,
     role,
+    isRedundant,
   }
 }

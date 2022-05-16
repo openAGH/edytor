@@ -93,6 +93,7 @@
   top: @editor-toolbar-height;
 }
 
+.pdf-empty,
 .no-history-available,
 .no-file-selection,
 .multi-selection-ongoing {
@@ -100,7 +101,8 @@
     .full-size;
     left: 20px;
     content: '';
-    background: url(/img/ol-brand/overleaf-o-grey.svg) center / 200px no-repeat;
+    background: url(../../../public/img/ol-brand/overleaf-o-grey.svg) center /
+      200px no-repeat;
     opacity: 0.2;
     pointer-events: none;
   }
@@ -275,9 +277,9 @@ Ace
   .spelling-highlight {
     z-index: 3;
     position: absolute;
-    background-image: url(/img/spellcheck-underline.png);
+    background-image: url(../../../public/img/spellcheck-underline.png);
     @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-      background-image: url(/img/spellcheck-underline@2x.png);
+      background-image: url(../../../public/img/spellcheck-underline@2x.png);
       background-size: 5px 4px;
     }
     background-repeat: repeat-x;
@@ -372,6 +374,8 @@ CodeMirror
 .ui-layout-resizer {
   width: @ui-resizer-size !important;
   background-color: @editor-resizer-bg-color;
+  /* Over-ride z-index set on element by JQuery Layout */
+  z-index: 0 !important;
   &.ui-layout-resizer-closed {
     &::before,
     &::after {
@@ -410,7 +414,6 @@ CodeMirror
   height: 50px;
   margin-top: -25px;
   top: 50%;
-  z-index: 3;
   background-color: @editor-toggler-bg-color;
 
   &:hover,
@@ -460,6 +463,7 @@ CodeMirror
 
 .ui-layout-resizer-dragging {
   background-color: @editor-resizer-bg-color-dragging;
+  z-index: 1000 !important;
 }
 
 .context-menu {
@@ -595,8 +599,13 @@ CodeMirror
   // search result items list
   .search-results {
     font-size: 12px;
-    .no-results-message {
+    .no-results-message,
+    .too-many-results-message {
       font-size: 16px;
+    }
+    .search-results-scroll-container {
+      max-height: calc(100vh - 225px);
+      overflow-y: auto;
     }
     .search-result-hit {
       &:hover {

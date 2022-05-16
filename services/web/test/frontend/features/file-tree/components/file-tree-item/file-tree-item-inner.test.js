@@ -9,13 +9,8 @@ import FileTreeContextMenu from '../../../../../../frontend/js/features/file-tre
 describe('<FileTreeitemInner />', function () {
   const setContextMenuCoords = sinon.stub()
 
-  beforeEach(function () {
-    global.requestAnimationFrame = sinon.stub()
-  })
-
   afterEach(function () {
     setContextMenuCoords.reset()
-    delete global.requestAnimationFrame
   })
 
   describe('menu', function () {
@@ -31,12 +26,19 @@ describe('<FileTreeitemInner />', function () {
 
   describe('context menu', function () {
     it('does not display without write permissions', function () {
-      renderWithContext(
-        <FileTreeitemInner id="123abc" name="bar.tex" isSelected />,
-        { contextProps: { hasWritePermissions: false } }
+      const { container } = renderWithContext(
+        <>
+          <FileTreeitemInner id="123abc" name="bar.tex" isSelected />
+          <FileTreeContextMenu />
+        </>,
+        {
+          contextProps: { permissionsLevel: 'readOnly' },
+        }
       )
 
-      expect(screen.queryByRole('menu', { visible: false })).to.not.exist
+      const entityElement = container.querySelector('div.entity')
+      fireEvent.contextMenu(entityElement)
+      expect(screen.queryByRole('menu')).to.not.exist
     })
 
     it('open / close', function () {
@@ -82,6 +84,7 @@ describe('<FileTreeitemInner />', function () {
             rootFolder: [
               {
                 _id: 'root-folder-id',
+                name: 'rootFolder',
                 docs: [{ _id: '123abc', name: 'bar.tex' }],
                 folders: [],
                 fileRefs: [],

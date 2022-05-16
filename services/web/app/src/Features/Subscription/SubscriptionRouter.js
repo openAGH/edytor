@@ -47,6 +47,12 @@ module.exports = {
       SubscriptionController.canceledSubscription
     )
 
+    webRouter.get(
+      '/user/subscription/recurly/:pageType',
+      AuthenticationController.requireLogin(),
+      SubscriptionController.redirectToHostedPage
+    )
+
     webRouter.delete(
       '/subscription/group/user',
       AuthenticationController.requireLogin(),
@@ -134,13 +140,6 @@ module.exports = {
       '/user/subscription/account/email',
       AuthenticationController.requireLogin(),
       SubscriptionController.updateAccountEmailAddress
-    )
-
-    // Currently used in acceptance tests only, as a way to trigger the syncing logic
-    return publicApiRouter.post(
-      '/user/:user_id/features/sync',
-      AuthenticationController.requirePrivateApiAuth(),
-      SubscriptionController.refreshUserFeatures
     )
   },
 }

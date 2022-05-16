@@ -11,8 +11,6 @@ const PrivilegeLevels = require('../Authorization/PrivilegeLevels')
 const TokenAccessHandler = require('../TokenAccess/TokenAccessHandler')
 const SessionManager = require('../Authentication/SessionManager')
 const Errors = require('../Errors/Errors')
-const HttpErrorHandler = require('../Errors/HttpErrorHandler')
-const ProjectEntityUpdateHandler = require('../Project/ProjectEntityUpdateHandler')
 const DocstoreManager = require('../Docstore/DocstoreManager')
 const logger = require('@overleaf/logger')
 const { expressify } = require('../../util/promises')
@@ -27,7 +25,6 @@ module.exports = {
   deleteFile: expressify(deleteFile),
   deleteFolder: expressify(deleteFolder),
   deleteEntity: expressify(deleteEntity),
-  convertDocToFile: expressify(convertDocToFile),
   _nameIsAcceptableLength,
 }
 
@@ -60,11 +57,8 @@ async function joinProject(req, res, next) {
     userId = null
   }
   Metrics.inc('editor.join-project')
-  const {
-    project,
-    privilegeLevel,
-    isRestrictedUser,
-  } = await _buildJoinProjectView(req, projectId, userId)
+  const { project, privilegeLevel, isRestrictedUser } =
+    await _buildJoinProjectView(req, projectId, userId)
   if (!project) {
     return res.sendStatus(403)
   }
@@ -116,15 +110,17 @@ async function _buildJoinProjectView(req, projectId, userId) {
       'soft-failure when fetching deletedDocs from docstore'
     )
   }
-  const members = await CollaboratorsGetter.promises.getInvitedMembersWithPrivilegeLevels(
-    projectId
-  )
+  const members =
+    await CollaboratorsGetter.promises.getInvitedMembersWithPrivilegeLevels(
+      projectId
+    )
   const token = TokenAccessHandler.getRequestToken(req, projectId)
-  const privilegeLevel = await AuthorizationManager.promises.getPrivilegeLevelForProject(
-    userId,
-    projectId,
-    token
-  )
+  const privilegeLevel =
+    await AuthorizationManager.promises.getPrivilegeLevelForProject(
+      userId,
+      projectId,
+      token
+    )
   if (privilegeLevel == null || privilegeLevel === PrivilegeLevels.NONE) {
     return { project: null, privilegeLevel: null, isRestrictedUser: false }
   }
@@ -275,30 +271,4 @@ async function deleteEntity(req, res, next) {
     userId
   )
   res.sendStatus(204)
-}
-
-async function convertDocToFile(req, res, next) {
-  const projectId = req.params.Project_id
-  const docId = req.params.entity_id
-  const { userId } = req.body
-  try {
-    const fileRef = await ProjectEntityUpdateHandler.promises.convertDocToFile(
-      projectId,
-      docId,
-      userId
-    )
-    res.json({ fileId: fileRef._id.toString() })
-  } catch (err) {
-    if (err instanceof Errors.NotFoundError) {
-      return HttpErrorHandler.notFound(req, res, 'Document not found')
-    } else if (err instanceof Errors.DocHasRangesError) {
-      return HttpErrorHandler.unprocessableEntity(
-        req,
-        res,
-        'Document has comments or tracked changes'
-      )
-    } else {
-      throw err
-    }
-  }
 }

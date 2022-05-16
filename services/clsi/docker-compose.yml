@@ -7,11 +7,14 @@ version: "2.3"
 services:
   test_unit:
     build:
-      context: .
+      context: ../..
+      dockerfile: services/clsi/Dockerfile
       target: base
     volumes:
-      - .:/app
-    working_dir: /app
+      - .:/overleaf/services/clsi
+      - ../../node_modules:/overleaf/node_modules
+      - ../../libraries:/overleaf/libraries
+    working_dir: /overleaf/services/clsi
     environment:
       MOCHA_GREP: ${MOCHA_GREP}
       NODE_ENV: test
@@ -20,11 +23,14 @@ services:
 
   test_acceptance:
     build:
-      context: .
+      context: ../..
+      dockerfile: services/clsi/Dockerfile
       target: base
     volumes:
-      - .:/app
-    working_dir: /app
+      - .:/overleaf/services/clsi
+      - ../../node_modules:/overleaf/node_modules
+      - ../../libraries:/overleaf/libraries
+    working_dir: /overleaf/services/clsi
     extends:
       file: docker-compose-config.yml
       service: dev
@@ -32,6 +38,7 @@ services:
       ELASTIC_SEARCH_DSN: es:9200
       REDIS_HOST: redis
       QUEUES_REDIS_HOST: redis
+      ANALYTICS_QUEUES_REDIS_HOST: redis
       MONGO_HOST: mongo
       POSTGRES_HOST: postgres
       MOCHA_GREP: ${MOCHA_GREP}

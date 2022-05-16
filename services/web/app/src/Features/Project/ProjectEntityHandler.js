@@ -3,6 +3,7 @@ const DocstoreManager = require('../Docstore/DocstoreManager')
 const Errors = require('../Errors/Errors')
 const ProjectGetter = require('./ProjectGetter')
 const { promisifyAll } = require('../../util/promises')
+const OError = require('@overleaf/o-error')
 
 const ProjectEntityHandler = {
   getAllDocs(projectId, callback) {
@@ -69,31 +70,28 @@ const ProjectEntityHandler = {
         return callback(new Errors.NotFoundError('project not found'))
       }
 
-      ProjectEntityHandler.getAllEntitiesFromProject(project, callback)
+      const entities = ProjectEntityHandler.getAllEntitiesFromProject(project)
+      callback(null, entities)
     })
   },
 
-  getAllEntitiesFromProject(project, callback) {
-    ProjectEntityHandler._getAllFoldersFromProject(project, (err, folders) => {
-      if (err != null) {
-        return callback(err)
-      }
-      const docs = []
-      const files = []
-      for (const { path: folderPath, folder } of folders) {
-        for (const doc of folder.docs || []) {
-          if (doc != null) {
-            docs.push({ path: path.join(folderPath, doc.name), doc })
-          }
-        }
-        for (const file of folder.fileRefs || []) {
-          if (file != null) {
-            files.push({ path: path.join(folderPath, file.name), file })
-          }
+  getAllEntitiesFromProject(project) {
+    const folders = ProjectEntityHandler._getAllFoldersFromProject(project)
+    const docs = []
+    const files = []
+    for (const { path: folderPath, folder } of folders) {
+      for (const doc of folder.docs || []) {
+        if (doc != null) {
+          docs.push({ path: path.join(folderPath, doc.name), doc })
         }
       }
-      callback(null, docs, files, folders)
-    })
+      for (const file of folder.fileRefs || []) {
+        if (file != null) {
+          files.push({ path: path.join(folderPath, file.name), file })
+        }
+      }
+    }
+    return { docs, files, folders }
   },
 
   getAllDocPathsFromProjectById(projectId, callback) {
@@ -104,23 +102,20 @@ const ProjectEntityHandler = {
       if (project == null) {
         return callback(Errors.NotFoundError('no project'))
       }
-      ProjectEntityHandler.getAllDocPathsFromProject(project, callback)
+      const docPaths = ProjectEntityHandler.getAllDocPathsFromProject(project)
+      callback(null, docPaths)
     })
   },
 
-  getAllDocPathsFromProject(project, callback) {
-    ProjectEntityHandler._getAllFoldersFromProject(project, (err, folders) => {
-      if (err != null) {
-        return callback(err)
+  getAllDocPathsFromProject(project) {
+    const folders = ProjectEntityHandler._getAllFoldersFromProject(project)
+    const docPath = {}
+    for (const { path: folderPath, folder } of folders) {
+      for (const doc of folder.docs || []) {
+        docPath[doc._id] = path.join(folderPath, doc.name)
       }
-      const docPath = {}
-      for (const { path: folderPath, folder } of folders) {
-        for (const doc of folder.docs || []) {
-          docPath[doc._id] = path.join(folderPath, doc.name)
-        }
-      }
-      callback(null, docPath)
-    })
+    }
+    return docPath
   },
 
   getDoc(projectId, docId, options, callback) {
@@ -205,31 +200,38 @@ const ProjectEntityHandler = {
       if (project == null) {
         return callback(new Errors.NotFoundError('no project'))
       }
-      ProjectEntityHandler._getAllFoldersFromProject(project, callback)
+      const folders = ProjectEntityHandler._getAllFoldersFromProject(project)
+      callback(null, folders)
     })
   },
 
-  _getAllFoldersFromProject(project, callback) {
+  _getAllFoldersFromProject(project) {
     const folders = []
-    function processFolder(basePath, folder) {
-      folders.push({ path: basePath, folder })
-      for (const childFolder of folder.folders || []) {
-        if (childFolder.name != null) {
-          processFolder(path.join(basePath, childFolder.name), childFolder)
+    try {
+      const processFolder = (basePath, folder) => {
+        folders.push({ path: basePath, folder })
+        if (folder.folders) {
+          for (const childFolder of folder.folders) {
+            if (childFolder.name != null) {
+              const childPath = path.join(basePath, childFolder.name)
+              processFolder(childPath, childFolder)
+            }
+          }
         }
       }
+      processFolder('/', project.rootFolder[0])
+      return folders
+    } catch (err) {
+      throw OError.tag(err, 'Error getting folders', { projectId: project._id })
     }
-
-    processFolder('/', project.rootFolder[0])
-    callback(null, folders)
   },
 }
 
 module.exports = ProjectEntityHandler
 module.exports.promises = promisifyAll(ProjectEntityHandler, {
+  without: ['getAllEntitiesFromProject'],
   multiResult: {
     getAllEntities: ['docs', 'files'],
-    getAllEntitiesFromProject: ['docs', 'files'],
     getDoc: ['lines', 'rev', 'version', 'ranges'],
   },
 })

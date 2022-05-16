@@ -15,21 +15,23 @@ describe('FileTree Create Folder Flow', function () {
   const onInit = sinon.stub()
 
   beforeEach(function () {
-    global.requestAnimationFrame = sinon.stub()
+    window.metaAttributesCache = new Map()
+    window.metaAttributesCache.set('ol-user', { id: 'user1' })
   })
 
   afterEach(function () {
-    delete global.requestAnimationFrame
     fetchMock.restore()
     onSelect.reset()
     onInit.reset()
     cleanUpContext()
+    window.metaAttributesCache = new Map()
   })
 
   it('add to root when no files are selected', async function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [{ _id: '456def', name: 'main.tex' }],
         folders: [],
         fileRefs: [],
@@ -37,10 +39,6 @@ describe('FileTree Create Folder Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
@@ -49,7 +47,11 @@ describe('FileTree Create Folder Flow', function () {
         onInit={onInit}
         isConnected
       />,
-      { socket: new MockedSocket() }
+      {
+        socket: new MockedSocket(),
+        rootFolder,
+        projectId: '123abc',
+      }
     )
 
     const newFolderName = 'Foo Bar In Root'
@@ -83,6 +85,7 @@ describe('FileTree Create Folder Flow', function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [],
         folders: [
           {
@@ -98,20 +101,20 @@ describe('FileTree Create Folder Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
         setStartedFreeTrial={() => null}
-        rootDocId="789ghi"
         onSelect={onSelect}
         onInit={onInit}
         isConnected
       />,
-      { socket: new MockedSocket() }
+      {
+        socket: new MockedSocket(),
+        rootFolder,
+        projectId: '123abc',
+        rootDocId: '789ghi',
+      }
     )
 
     const expandButton = screen.getByRole('button', { name: 'Expand' })
@@ -154,6 +157,7 @@ describe('FileTree Create Folder Flow', function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [],
         folders: [
           {
@@ -169,20 +173,20 @@ describe('FileTree Create Folder Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
         setStartedFreeTrial={() => null}
-        rootDocId="456def"
         onSelect={onSelect}
         onInit={onInit}
         isConnected
       />,
-      { socket: new MockedSocket() }
+      {
+        socket: new MockedSocket(),
+        rootFolder,
+        projectId: '123abc',
+        rootDocId: '456def',
+      }
     )
 
     const newFolderName = 'Foo Bar In thefolder'
@@ -222,6 +226,7 @@ describe('FileTree Create Folder Flow', function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [{ _id: '456def', name: 'existingFile' }],
         folders: [],
         fileRefs: [],
@@ -229,20 +234,20 @@ describe('FileTree Create Folder Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
         setStartedFreeTrial={() => null}
-        rootDocId="456def"
         onSelect={onSelect}
         onInit={onInit}
         isConnected
       />,
-      { socket: new MockedSocket() }
+      {
+        socket: new MockedSocket(),
+        rootFolder,
+        projectId: '123abc',
+        rootDocId: '456def',
+      }
     )
 
     let newFolderName = 'existingFile'

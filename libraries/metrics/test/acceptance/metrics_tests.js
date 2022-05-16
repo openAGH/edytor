@@ -1,3 +1,4 @@
+const { promisify } = require('util')
 const os = require('os')
 const http = require('http')
 const { expect } = require('chai')
@@ -5,25 +6,26 @@ const Metrics = require('../..')
 
 const HOSTNAME = os.hostname()
 const APP_NAME = 'test-app'
+const sleep = promisify(setTimeout)
 
-describe('Metrics module', function() {
-  before(function() {
+describe('Metrics module', function () {
+  before(function () {
     Metrics.initialize(APP_NAME)
   })
 
-  describe('at startup', function() {
-    it('increments the process_startup counter', async function() {
+  describe('at startup', function () {
+    it('increments the process_startup counter', async function () {
       await expectMetricValue('process_startup', 1)
     })
 
-    it('collects default metrics', async function() {
+    it('collects default metrics', async function () {
       const metric = await getMetric('process_cpu_user_seconds_total')
       expect(metric).to.exist
     })
   })
 
-  describe('inc()', function() {
-    it('increments counts by 1', async function() {
+  describe('inc()', function () {
+    it('increments counts by 1', async function () {
       Metrics.inc('duck_count')
       await expectMetricValue('duck_count', 1)
       Metrics.inc('duck_count')
@@ -31,14 +33,14 @@ describe('Metrics module', function() {
       await expectMetricValue('duck_count', 3)
     })
 
-    it('escapes special characters in the key', async function() {
+    it('escapes special characters in the key', async function () {
       Metrics.inc('show.me the $!!')
       await expectMetricValue('show_me_the____', 1)
     })
   })
 
-  describe('count()', function() {
-    it('increments counts by the given count', async function() {
+  describe('count()', function () {
+    it('increments counts by the given count', async function () {
       Metrics.count('rabbit_count', 5)
       await expectMetricValue('rabbit_count', 5)
       Metrics.count('rabbit_count', 6)
@@ -47,8 +49,8 @@ describe('Metrics module', function() {
     })
   })
 
-  describe('summary()', function() {
-    it('collects observations', async function() {
+  describe('summary()', function () {
+    it('collects observations', async function () {
       Metrics.summary('oven_temp', 200)
       Metrics.summary('oven_temp', 300)
       Metrics.summary('oven_temp', 450)
@@ -57,8 +59,8 @@ describe('Metrics module', function() {
     })
   })
 
-  describe('timing()', function() {
-    it('collects timings', async function() {
+  describe('timing()', function () {
+    it('collects timings', async function () {
       Metrics.timing('sprint_100m', 10)
       Metrics.timing('sprint_100m', 20)
       Metrics.timing('sprint_100m', 30)
@@ -67,8 +69,62 @@ describe('Metrics module', function() {
     })
   })
 
-  describe('gauge()', function() {
-    it('records values', async function() {
+  describe('histogram()', function () {
+    it('collects in buckets', async function () {
+      const buckets = [10, 100, 1000]
+      Metrics.histogram('distance', 10, buckets)
+      Metrics.histogram('distance', 20, buckets)
+      Metrics.histogram('distance', 100, buckets)
+      Metrics.histogram('distance', 200, buckets)
+      Metrics.histogram('distance', 1000, buckets)
+      Metrics.histogram('distance', 2000, buckets)
+      const sum = await getSummarySum('histogram_distance')
+      expect(sum).to.equal(3330)
+      await checkHistogramValues('histogram_distance', {
+        10: 1,
+        100: 3,
+        1000: 5,
+        '+Inf': 6,
+      })
+    })
+  })
+
+  describe('Timer', function () {
+    beforeEach('collect timings', async function () {
+      const buckets = [10, 100, 1000]
+      for (const duration of [1, 1, 1, 15, 15, 15, 105, 105, 105]) {
+        const withBuckets = new Metrics.Timer('height', 1, {}, buckets)
+        const withOutBuckets = new Metrics.Timer('depth', 1, {})
+        await sleep(duration)
+        withBuckets.done()
+        withOutBuckets.done()
+      }
+    })
+
+    it('with buckets', async function () {
+      await checkHistogramValues('histogram_height', {
+        10: 3,
+        100: 6,
+        1000: 9,
+        '+Inf': 9,
+      })
+    })
+
+    it('without buckets', async function () {
+      await checkSummaryValues('timer_depth', {
+        0.01: 1,
+        0.05: 1,
+        0.5: 15,
+        0.9: 105,
+        0.95: 105,
+        0.99: 105,
+        0.999: 105,
+      })
+    })
+  })
+
+  describe('gauge()', function () {
+    it('records values', async function () {
       Metrics.gauge('water_level', 1.5)
       await expectMetricValue('water_level', 1.5)
       Metrics.gauge('water_level', 4.2)
@@ -76,8 +132,8 @@ describe('Metrics module', function() {
     })
   })
 
-  describe('globalGauge()', function() {
-    it('records values without a host label', async function() {
+  describe('globalGauge()', function () {
+    it('records values without a host label', async function () {
       Metrics.globalGauge('tire_pressure', 99.99)
       const { value, labels } = await getMetricValue('tire_pressure')
       expect(value).to.equal(99.99)
@@ -86,7 +142,7 @@ describe('Metrics module', function() {
     })
   })
 
-  describe('open_sockets', function() {
+  describe('open_sockets', function () {
     const keyServer1 = 'open_connections_http_127_42_42_1'
     const keyServer2 = 'open_connections_http_127_42_42_2'
 
@@ -131,52 +187,52 @@ describe('Metrics module', function() {
       urlServer1 = `http://127.42.42.1:${server1.address().port}/`
       urlServer2 = `http://127.42.42.2:${server2.address().port}/`
     })
-    describe('gaugeOpenSockets()', function() {
+    describe('gaugeOpenSockets()', function () {
       beforeEach(function runGaugeOpenSockets() {
         Metrics.open_sockets.gaugeOpenSockets()
       })
 
-      describe('without pending connections', function() {
-        it('emits no open_connections', async function() {
+      describe('without pending connections', function () {
+        it('emits no open_connections', async function () {
           await expectNoMetricValue(keyServer1)
           await expectNoMetricValue(keyServer2)
         })
       })
 
-      describe('with pending connections for server1', function() {
-        before(function(done) {
+      describe('with pending connections for server1', function () {
+        before(function (done) {
           http.get(urlServer1)
           http.get(urlServer1)
           setTimeout(done, 10)
         })
 
-        it('emits 2 open_connections for server1', async function() {
+        it('emits 2 open_connections for server1', async function () {
           await expectMetricValue(keyServer1, 2)
         })
 
-        it('emits no open_connections for server2', async function() {
+        it('emits no open_connections for server2', async function () {
           await expectNoMetricValue(keyServer2)
         })
       })
 
-      describe('with pending connections for server1 and server2', function() {
-        before(function(done) {
+      describe('with pending connections for server1 and server2', function () {
+        before(function (done) {
           http.get(urlServer2)
           http.get(urlServer2)
           setTimeout(done, 10)
         })
 
-        it('emits 2 open_connections for server1', async function() {
+        it('emits 2 open_connections for server1', async function () {
           await expectMetricValue(keyServer1, 2)
         })
 
-        it('emits 2 open_connections for server2', async function() {
+        it('emits 2 open_connections for server2', async function () {
           await expectMetricValue(keyServer2, 2)
         })
       })
 
-      describe('when requests finish for server1', function() {
-        before(function(done) {
+      describe('when requests finish for server1', function () {
+        before(function (done) {
           finish1()
           resetEmitResponse1()
           http.get(urlServer1)
@@ -184,24 +240,24 @@ describe('Metrics module', function() {
           setTimeout(done, 10)
         })
 
-        it('emits 1 open_connections for server1', async function() {
+        it('emits 1 open_connections for server1', async function () {
           await expectMetricValue(keyServer1, 1)
         })
 
-        it('emits 2 open_connections for server2', async function() {
+        it('emits 2 open_connections for server2', async function () {
           await expectMetricValue(keyServer2, 2)
         })
       })
 
-      describe('when all requests complete', function() {
-        before(function(done) {
+      describe('when all requests complete', function () {
+        before(function (done) {
           finish1()
           finish2()
 
           setTimeout(done, 10)
         })
 
-        it('emits no open_connections', async function() {
+        it('emits no open_connections', async function () {
           await expectNoMetricValue(keyServer1)
           await expectNoMetricValue(keyServer2)
         })
@@ -221,6 +277,38 @@ async function getSummarySum(key) {
     if (value.metricName === `${key}_sum`) {
       return value.value
     }
+  }
+  return null
+}
+
+async function checkHistogramValues(key, values) {
+  const metric = getMetric(key)
+  const item = await metric.get()
+  const found = {}
+  for (const value of item.values) {
+    const bucket = value.labels.le
+    if (!bucket) continue
+    found[bucket] = value.value
+  }
+  expect(found).to.deep.equal(values)
+  return null
+}
+
+async function checkSummaryValues(key, values) {
+  const metric = getMetric(key)
+  const item = await metric.get()
+  const found = {}
+  for (const value of item.values) {
+    const quantile = value.labels.quantile
+    if (!quantile) continue
+    found[quantile] = value.value
+  }
+  for (const quantile of Object.keys(values)) {
+    expect(found[quantile]).to.be.within(
+      values[quantile] - 5,
+      values[quantile] + 5,
+      `quantile: ${quantile}`
+    )
   }
   return null
 }

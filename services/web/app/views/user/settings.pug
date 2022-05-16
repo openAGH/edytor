@@ -8,7 +8,11 @@ block append meta
 	meta(name="ol-thirdPartyIds", data-type="json", content=thirdPartyIds)
 
 block content
-	main.content.content-alt#main-content
+	main.content.content-alt#main-content(
+		event-tracking-mb="true"
+		event-tracking="settings-view"
+		event-tracking-trigger="load"
+	)
 		.container
 			.row
 				.col-md-12.col-lg-10.col-lg-offset-1
@@ -98,7 +102,7 @@ block content
 									h3 #{translate("change_password")}
 									if externalAuthenticationSystemUsed() && !settings.overleaf
 										p
-											Password settings are managed externally
+											| Password settings are managed externally
 									else if !hasPassword
 										p
 											| #[a(href="/user/password/reset", target='_blank') #{translate("no_existing_password")}]
@@ -162,17 +166,18 @@ block content
 							| !{moduleIncludes("userSettings", locals)}
 							hr
 
-							h3
-								| #{translate("sharelatex_beta_program")}
-
-							if (user.betaProgram)
-								p.small
-									| #{translate("beta_program_already_participating")}
-
-							div
-								a(id="beta-program-participate-link" href="/beta/participate") #{translate("manage_beta_program_membership")}
-
-							hr
+							if hasFeature('saas')
+								h3
+									| #{translate("sharelatex_beta_program")}
+	
+								if (user.betaProgram)
+									p.small
+										| #{translate("beta_program_already_participating")}
+	
+								div
+									a(id="beta-program-participate-link" href="/beta/participate") #{translate("manage_beta_program_membership")}
+	
+								hr
 
 							h3
 								| #{translate("sessions")}
@@ -217,7 +222,7 @@ block content
 		.modal-header
 			h3 #{translate("delete_account")}
 		div.modal-body#delete-account-modal
-			p !{translate("delete_account_warning_message_3")}
+			p !{translate("delete_account_warning_message_3", {}, ['strong'])}
 			if settings.createV1AccountOnLogin && settings.overleaf
 				p
 					strong

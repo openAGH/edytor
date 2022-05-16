@@ -12,16 +12,23 @@ describe('FileTree Context Menu Flow', function () {
   const onSelect = sinon.stub()
   const onInit = sinon.stub()
 
+  beforeEach(function () {
+    window.metaAttributesCache = new Map()
+    window.metaAttributesCache.set('ol-user', { id: 'user1' })
+  })
+
   afterEach(function () {
     onSelect.reset()
     onInit.reset()
     cleanUpContext()
+    window.metaAttributesCache = new Map()
   })
 
   it('opens on contextMenu event', async function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [{ _id: '456def', name: 'main.tex' }],
         folders: [],
         fileRefs: [],
@@ -29,19 +36,19 @@ describe('FileTree Context Menu Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
         setStartedFreeTrial={() => null}
-        rootDocId="456def"
         onSelect={onSelect}
         onInit={onInit}
         isConnected
-      />
+      />,
+      {
+        rootFolder,
+        projectId: '123abc',
+        rootDocId: '456def',
+      }
     )
     const treeitem = screen.getByRole('button', { name: 'main.tex' })
 
@@ -56,6 +63,7 @@ describe('FileTree Context Menu Flow', function () {
     const rootFolder = [
       {
         _id: 'root-folder-id',
+        name: 'rootFolder',
         docs: [{ _id: '456def', name: 'main.tex' }],
         folders: [],
         fileRefs: [],
@@ -63,19 +71,20 @@ describe('FileTree Context Menu Flow', function () {
     ]
     renderWithEditorContext(
       <FileTreeRoot
-        rootFolder={rootFolder}
-        projectId="123abc"
-        hasWritePermissions={false}
-        userHasFeature={() => true}
         refProviders={{}}
         reindexReferences={() => null}
         setRefProviderEnabled={() => null}
         setStartedFreeTrial={() => null}
-        rootDocId="456def"
         onSelect={onSelect}
         onInit={onInit}
         isConnected
-      />
+      />,
+      {
+        rootFolder,
+        projectId: '123abc',
+        rootDocId: '456def',
+        permissionsLevel: 'readOnly',
+      }
     )
     const treeitem = screen.getByRole('button', { name: 'main.tex' })
 

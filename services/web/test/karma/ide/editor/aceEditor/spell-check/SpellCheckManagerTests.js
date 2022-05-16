@@ -100,16 +100,7 @@ export default describe('SpellCheckManager', function () {
         this.timelord.tick(500)
         this.$httpBackend.flush()
         expect(this.adapter.getLinesByRows).to.have.been.calledWith([
-          0,
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9,
+          0, 1, 2, 3, 4, 5, 6, 7, 8, 9,
         ])
       })
     })
@@ -215,7 +206,9 @@ export default describe('SpellCheckManager', function () {
       this.adapter.getLineCount.returns(1)
       this.adapter.getFirstVisibleRowNum.returns(1)
       this.adapter.getLastVisibleRowNum.returns(1)
-      this.adapter.getLinesByRows.returns(['Lorem ipsum dolor'])
+      this.adapter.getLinesByRows.returns([
+        'Lorem \\somecommand ipsum dolor \\othercommand',
+      ])
     })
 
     it('hits the backend with all words at startup', function () {
@@ -223,6 +216,7 @@ export default describe('SpellCheckManager', function () {
         .expect('POST', '/spelling/check', {
           language: this.scope.spellCheckLanguage,
           words: ['Lorem', 'ipsum', 'dolor'],
+          skipLearnedWords: true,
           token: window.user.id,
           _csrf: window.csrfToken,
         })
@@ -244,6 +238,7 @@ export default describe('SpellCheckManager', function () {
         .expect('POST', '/spelling/check', {
           language: this.scope.spellCheckLanguage,
           words: ['Lorem', 'ipsum', 'dolor'],
+          skipLearnedWords: true,
           token: window.user.id,
           _csrf: window.csrfToken,
         })
@@ -267,6 +262,7 @@ export default describe('SpellCheckManager', function () {
         .expect('POST', '/spelling/check', {
           language: this.scope.spellCheckLanguage,
           words: ['Lorem', 'ipsum', 'dolor'],
+          skipLearnedWords: true,
           token: window.user.id,
           _csrf: window.csrfToken,
         })
@@ -287,6 +283,7 @@ export default describe('SpellCheckManager', function () {
         .expect('POST', '/spelling/check', {
           language: this.scope.spellCheckLanguage,
           words: ['sit', 'amet'],
+          skipLearnedWords: true,
           token: window.user.id,
           _csrf: window.csrfToken,
         })

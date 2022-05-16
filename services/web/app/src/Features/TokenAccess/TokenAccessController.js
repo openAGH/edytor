@@ -8,6 +8,9 @@ const OError = require('@overleaf/o-error')
 const { expressify } = require('../../util/promises')
 const AuthorizationManager = require('../Authorization/AuthorizationManager')
 const PrivilegeLevels = require('../Authorization/PrivilegeLevels')
+const {
+  handleAdminDomainRedirect,
+} = require('../Authorization/AuthorizationMiddleware')
 
 const orderedPrivilegeLevels = [
   PrivilegeLevels.NONE,
@@ -25,11 +28,12 @@ async function _userAlreadyHasHigherPrivilege(
   if (!Object.values(TokenAccessHandler.TOKEN_TYPES).includes(tokenType)) {
     throw new Error('bad token type')
   }
-  const privilegeLevel = await AuthorizationManager.promises.getPrivilegeLevelForProject(
-    userId,
-    projectId,
-    token
-  )
+  const privilegeLevel =
+    await AuthorizationManager.promises.getPrivilegeLevelForProject(
+      userId,
+      projectId,
+      token
+    )
   return (
     orderedPrivilegeLevels.indexOf(privilegeLevel) >=
     orderedPrivilegeLevels.indexOf(tokenType)
@@ -82,11 +86,14 @@ async function tokenAccessPage(req, res, next) {
   if (!TokenAccessHandler.isValidToken(token)) {
     return next(new Errors.NotFoundError())
   }
+  if (handleAdminDomainRedirect(req, res)) {
+    // Admin users do not join the project, but view it on the admin domain.
+    return
+  }
   try {
     if (TokenAccessHandler.isReadOnlyToken(token)) {
-      const docPublishedInfo = await TokenAccessHandler.promises.getV1DocPublishedInfo(
-        token
-      )
+      const docPublishedInfo =
+        await TokenAccessHandler.promises.getV1DocPublishedInfo(token)
       if (docPublishedInfo.allow === false) {
         return res.redirect(302, docPublishedInfo.published_path)
       }
@@ -135,9 +142,8 @@ async function checkAndGetProjectOrResponseAction(
 
   const projectId = project._id
   const isAnonymousUser = !userId
-  const tokenAccessEnabled = TokenAccessHandler.tokenAccessEnabledForProject(
-    project
-  )
+  const tokenAccessEnabled =
+    TokenAccessHandler.tokenAccessEnabledForProject(project)
   if (isAnonymousUser && tokenAccessEnabled) {
     if (tokenType === TokenAccessHandler.TOKEN_TYPES.READ_AND_WRITE) {
       if (TokenAccessHandler.ANONYMOUS_READ_AND_WRITE_ENABLED) {
@@ -154,7 +160,7 @@ async function checkAndGetProjectOrResponseAction(
         ]
       } else {
         logger.warn(
-          { token, projectId },
+          { projectId },
           '[TokenAccess] deny anonymous read-and-write token access'
         )
         AuthenticationController.setRedirectInSession(
@@ -260,9 +266,8 @@ async function grantTokenAccessReadOnly(req, res, next) {
     return res.sendStatus(400)
   }
   const tokenType = TokenAccessHandler.TOKEN_TYPES.READ_ONLY
-  const docPublishedInfo = await TokenAccessHandler.promises.getV1DocPublishedInfo(
-    token
-  )
+  const docPublishedInfo =
+    await TokenAccessHandler.promises.getV1DocPublishedInfo(token)
   if (docPublishedInfo.allow === false) {
     return res.json({ redirect: docPublishedInfo.published_path })
   }

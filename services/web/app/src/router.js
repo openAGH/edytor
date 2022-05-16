@@ -53,6 +53,7 @@ const AnalyticsRegistrationSourceMiddleware = require('./Features/Analytics/Anal
 const AnalyticsUTMTrackingMiddleware = require('./Features/Analytics/AnalyticsUTMTrackingMiddleware')
 const SplitTestMiddleware = require('./Features/SplitTests/SplitTestMiddleware')
 const OpenAghApiRouter = require('./Features/OpenAghApi/OpenAghApiRouter')
+const CaptchaMiddleware = require('./Features/Captcha/CaptchaMiddleware')
 const { Joi, validate } = require('./infrastructure/Validation')
 const {
   renderUnsupportedBrowserPage,
@@ -62,6 +63,7 @@ const {
 const logger = require('@overleaf/logger')
 const _ = require('underscore')
 const { expressify } = require('./util/promises')
+const { plainTextResponse } = require('./infrastructure/Response')
 
 module.exports = { initialize }
 
@@ -81,15 +83,35 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
     )
   )
 
+  // Mount onto /login in order to get the deviceHistory cookie.
+  webRouter.post(
+    '/login/can-skip-captcha',
+    // Keep in sync with the overleaf-login options.
+    RateLimiterMiddleware.rateLimit({
+      endpointName: 'can-skip-captcha',
+      maxRequests: 20,
+      timeInterval: 60,
+    }),
+    CaptchaMiddleware.canSkipCaptcha
+  )
+
   webRouter.get('/login', UserPagesController.loginPage)
   AuthenticationController.addEndpointToLoginWhitelist('/login')
 
-  webRouter.post('/login', AuthenticationController.passportLogin)
+  webRouter.post(
+    '/login',
+    CaptchaMiddleware.validateCaptcha('login'),
+    AuthenticationController.passportLogin
+  )
 
   if (Settings.enableLegacyLogin) {
     AuthenticationController.addEndpointToLoginWhitelist('/login/legacy')
     webRouter.get('/login/legacy', UserPagesController.loginPage)
-    webRouter.post('/login/legacy', AuthenticationController.passportLogin)
+    webRouter.post(
+      '/login/legacy',
+      CaptchaMiddleware.validateCaptcha('login'),
+      AuthenticationController.passportLogin
+    )
   }
 
   webRouter.get(
@@ -183,6 +205,18 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
     UserEmailsController.resendConfirmation
   )
 
+  webRouter.get(
+    '/user/emails/primary-email-check',
+    AuthenticationController.requireLogin(),
+    UserEmailsController.primaryEmailCheckPage
+  )
+
+  webRouter.post(
+    '/user/emails/primary-email-check',
+    AuthenticationController.requireLogin(),
+    UserEmailsController.primaryEmailCheck
+  )
+
   if (Features.hasFeature('affiliations')) {
     webRouter.post(
       '/user/emails',
@@ -232,11 +266,31 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
     UserController.clearSessions
   )
 
+  // deprecated
   webRouter.delete(
     '/user/newsletter/unsubscribe',
     AuthenticationController.requireLogin(),
     UserController.unsubscribe
   )
+
+  webRouter.post(
+    '/user/newsletter/unsubscribe',
+    AuthenticationController.requireLogin(),
+    UserController.unsubscribe
+  )
+
+  webRouter.post(
+    '/user/newsletter/subscribe',
+    AuthenticationController.requireLogin(),
+    UserController.subscribe
+  )
+
+  webRouter.get(
+    '/user/email-preferences',
+    AuthenticationController.requireLogin(),
+    UserPagesController.emailPreferencesPage
+  )
+
   webRouter.post(
     '/user/delete',
     RateLimiterMiddleware.rateLimit({
@@ -498,21 +552,25 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
 
   webRouter.post(
     '/Project/:Project_id/archive',
+    AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectController.archiveProject
   )
   webRouter.delete(
     '/Project/:Project_id/archive',
+    AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectController.unarchiveProject
   )
   webRouter.post(
     '/project/:project_id/trash',
+    AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectController.trashProject
   )
   webRouter.delete(
     '/project/:project_id/trash',
+    AuthenticationController.requireLogin(),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectController.untrashProject
   )
@@ -544,24 +602,28 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
   )
   webRouter.get(
     '/project/:Project_id/updates',
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.selectHistoryApi,
     HistoryController.proxyToHistoryApiAndInjectUserDetails
   )
   webRouter.get(
     '/project/:Project_id/doc/:doc_id/diff',
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.selectHistoryApi,
     HistoryController.proxyToHistoryApi
   )
   webRouter.get(
     '/project/:Project_id/diff',
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.selectHistoryApi,
     HistoryController.proxyToHistoryApiAndInjectUserDetails
   )
   webRouter.get(
     '/project/:Project_id/filetree/diff',
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.selectHistoryApi,
     HistoryController.proxyToHistoryApi
@@ -589,6 +651,7 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
       maxRequests: 30,
       timeInterval: 60 * 60,
     }),
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.downloadZipOfVersion
   )
@@ -600,6 +663,7 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
 
   webRouter.get(
     '/project/:Project_id/labels',
+    AuthorizationMiddleware.blockRestrictedUserFromProject,
     AuthorizationMiddleware.ensureUserCanReadProject,
     HistoryController.selectHistoryApi,
     HistoryController.ensureProjectHistoryEnabled,
@@ -638,11 +702,23 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
 
   webRouter.get(
     '/Project/:Project_id/download/zip',
+    RateLimiterMiddleware.rateLimit({
+      endpointName: 'zip-download',
+      params: ['Project_id'],
+      maxRequests: 10,
+      timeInterval: 60,
+    }),
     AuthorizationMiddleware.ensureUserCanReadProject,
     ProjectDownloadsController.downloadProject
   )
   webRouter.get(
     '/project/download/zip',
+    AuthenticationController.requireLogin(),
+    RateLimiterMiddleware.rateLimit({
+      endpointName: 'multiple-projects-zip-download',
+      maxRequests: 10,
+      timeInterval: 60,
+    }),
     AuthorizationMiddleware.ensureUserCanReadMultipleProjects,
     ProjectDownloadsController.downloadMultipleProjects
   )
@@ -849,8 +925,13 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
   )
   webRouter.post(
     '/spelling/learn',
+    validate({
+      body: Joi.object({
+        word: Joi.string().required(),
+      }),
+    }),
     AuthenticationController.requireLogin(),
-    SpellingController.proxyRequestToSpellingApi
+    SpellingController.learn
   )
 
   webRouter.get(
@@ -951,27 +1032,12 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
     }
   })
 
-  // Admin Stuff
   webRouter.get(
     '/admin',
     AuthorizationMiddleware.ensureUserIsSiteAdmin,
     AdminController.index
   )
-  webRouter.get(
-    '/admin/user',
-    AuthorizationMiddleware.ensureUserIsSiteAdmin,
-    (req, res) => res.redirect('/admin/register')
-  ) // this gets removed by admin-panel addon
-  webRouter.get(
-    '/admin/register',
-    AuthorizationMiddleware.ensureUserIsSiteAdmin,
-    AdminController.registerNewUser
-  )
-  webRouter.post(
-    '/admin/register',
-    AuthorizationMiddleware.ensureUserIsSiteAdmin,
-    UserController.register
-  )
+
   if (!Features.hasFeature('saas')) {
     webRouter.post(
       '/admin/openEditor',
@@ -1015,23 +1081,27 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
     AdminController.unregisterServiceWorker
   )
 
-  privateApiRouter.get('/perfTest', (req, res) => res.send('hello'))
+  privateApiRouter.get('/perfTest', (req, res) => {
+    plainTextResponse(res, 'hello')
+  })
 
   publicApiRouter.get('/status', (req, res) => {
     if (!Settings.siteIsOpen) {
-      res.send('web site is closed (web)')
+      plainTextResponse(res, 'web site is closed (web)')
     } else if (!Settings.editorIsOpen) {
-      res.send('web editor is closed (web)')
+      plainTextResponse(res, 'web editor is closed (web)')
     } else {
-      res.send('web sharelatex is alive (web)')
+      plainTextResponse(res, 'web sharelatex is alive (web)')
     }
   })
-  privateApiRouter.get('/status', (req, res) =>
-    res.send('web sharelatex is alive (api)')
-  )
+  privateApiRouter.get('/status', (req, res) => {
+    plainTextResponse(res, 'web sharelatex is alive (api)')
+  })
 
   // used by kubernetes health-check and acceptance tests
-  webRouter.get('/dev/csrf', (req, res) => res.send(res.locals.csrfToken))
+  webRouter.get('/dev/csrf', (req, res) => {
+    plainTextResponse(res, res.locals.csrfToken)
+  })
 
   publicApiRouter.get(
     '/health_check',
@@ -1082,7 +1152,7 @@ function initialize(webRouter, privateApiRouter, publicApiRouter) {
       const projectId = req.params.Project_id
       const sendRes = _.once(function (statusCode, message) {
         res.status(statusCode)
-        res.send(message)
+        plainTextResponse(res, message)
         ClsiCookieManager.clearServerId(projectId)
       }) // force every compile to a new server
       // set a timeout

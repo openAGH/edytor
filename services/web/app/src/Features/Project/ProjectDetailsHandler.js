@@ -97,6 +97,7 @@ async function setProjectDescription(projectId, description) {
   }
 }
 async function renameProject(projectId, newName) {
+  newName = newName.trim()
   await validateProjectName(newName)
   logger.log({ projectId, newName }, 'renaming project')
   let project
@@ -144,10 +145,8 @@ async function validateProjectName(name) {
 // with a unique name.  But that requires thinking through how we would handle incoming projects from
 // dropbox for example.
 async function generateUniqueName(userId, name, suffixes = []) {
-  const allUsersProjectNames = await ProjectGetter.promises.findAllUsersProjects(
-    userId,
-    { name: 1 }
-  )
+  const allUsersProjectNames =
+    await ProjectGetter.promises.findAllUsersProjects(userId, { name: 1 })
   // allUsersProjectNames is returned as a hash {owned: [name1, name2, ...], readOnly: [....]}
   // collect all of the names and flatten them into a single array
   const projectNameList = _.pluck(
@@ -241,6 +240,7 @@ async function _generateTokens(project, callback) {
     tokens.readAndWritePrefix = numericPrefix
   }
   if (tokens.readOnly == null) {
-    tokens.readOnly = await TokenGenerator.promises.generateUniqueReadOnlyToken()
+    tokens.readOnly =
+      await TokenGenerator.promises.generateUniqueReadOnlyToken()
   }
 }

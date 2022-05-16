@@ -1,7 +1,5 @@
 const _ = require('lodash')
-const Path = require('path')
 const OError = require('@overleaf/o-error')
-const fs = require('fs')
 const crypto = require('crypto')
 const async = require('async')
 const logger = require('@overleaf/logger')
@@ -37,9 +35,12 @@ const BrandVariationsHandler = require('../BrandVariations/BrandVariationsHandle
 const UserController = require('../User/UserController')
 const AnalyticsManager = require('../Analytics/AnalyticsManager')
 const Modules = require('../../infrastructure/Modules')
-const SplitTestV2Handler = require('../SplitTests/SplitTestV2Handler')
-const { getNewLogsUIVariantForUser } = require('../Helpers/NewLogsUI')
+const SplitTestHandler = require('../SplitTests/SplitTestHandler')
 const FeaturesUpdater = require('../Subscription/FeaturesUpdater')
+const SpellingHandler = require('../Spelling/SpellingHandler')
+const UserPrimaryEmailCheckHandler = require('../User/UserPrimaryEmailCheckHandler')
+const { hasAdminAccess } = require('../Helpers/AdminAuthorizationHelper')
+const InstitutionsFeatures = require('../Institutions/InstitutionsFeatures')
 
 const _ssoAvailable = (affiliation, session, linkedInstitutionIds) => {
   if (!affiliation.institution) return false
@@ -248,7 +249,7 @@ const ProjectController = {
     const { projectName } = req.body
     logger.log({ projectId, projectName }, 'cloning project')
     if (!SessionManager.isUserLoggedIn(req.session)) {
-      return res.send({ redir: '/register' })
+      return res.json({ redir: '/register' })
     }
     const currentUser = SessionManager.getSessionUser(req.session)
     const { first_name: firstName, last_name: lastName, email } = currentUser
@@ -264,7 +265,7 @@ const ProjectController = {
           })
           return next(err)
         }
-        res.send({
+        res.json({
           name: project.name,
           project_id: project._id,
           owner_ref: project.owner_ref,
@@ -305,7 +306,7 @@ const ProjectController = {
         if (err != null) {
           return next(err)
         }
-        res.send({
+        res.json({
           project_id: project._id,
           owner_ref: project.owner_ref,
           owner: {
@@ -356,23 +357,17 @@ const ProjectController = {
       if (err != null) {
         return next(err)
       }
-      ProjectEntityHandler.getAllEntitiesFromProject(
-        project,
-        (err, docs, files) => {
-          if (err != null) {
-            return next(err)
-          }
-          const entities = docs
-            .concat(files)
-            // Sort by path ascending
-            .sort((a, b) => (a.path > b.path ? 1 : a.path < b.path ? -1 : 0))
-            .map(e => ({
-              path: e.path,
-              type: e.doc != null ? 'doc' : 'file',
-            }))
-          res.json({ project_id: projectId, entities })
-        }
-      )
+      const { docs, files } =
+        ProjectEntityHandler.getAllEntitiesFromProject(project)
+      const entities = docs
+        .concat(files)
+        // Sort by path ascending
+        .sort((a, b) => (a.path > b.path ? 1 : a.path < b.path ? -1 : 0))
+        .map(e => ({
+          path: e.path,
+          type: e.doc != null ? 'doc' : 'file',
+        }))
+      res.json({ project_id: projectId, entities })
     })
   },
 
@@ -409,7 +404,7 @@ const ProjectController = {
         user(cb) {
           User.findById(
             userId,
-            'emails featureSwitches overleaf awareOfV2 features lastLoginIp',
+            'email emails featureSwitches overleaf awareOfV2 features lastLoginIp lastPrimaryEmailCheck signUpDate',
             cb
           )
         },
@@ -445,13 +440,65 @@ const ProjectController = {
             )
           })
         },
+
+        primaryEmailCheckActive(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'primary-email-check',
+            (err, assignment) => {
+              if (err) {
+                logger.warn(
+                  { err },
+                  'failed to get "primary-email-check" split test assignment'
+                )
+                cb(null, false)
+              } else {
+                cb(null, assignment.variant === 'active')
+              }
+            }
+          )
+        },
+
+        persistentUpgradePromptsAssignment(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'persistent-upgrade-prompt',
+            (err, assignment) => {
+              if (err) {
+                logger.warn(
+                  { err },
+                  'failed to get "persistent-upgrade-prompt" split test assignment'
+                )
+                cb(null, { variant: 'default' })
+              } else {
+                cb(null, assignment)
+              }
+            }
+          )
+        },
       },
       (err, results) => {
         if (err != null) {
           OError.tag(err, 'error getting data for project list page')
           return next(err)
         }
-        const { notifications, user, userEmailsData } = results
+        const {
+          notifications,
+          user,
+          userEmailsData,
+          primaryEmailCheckActive,
+          persistentUpgradePromptsAssignment,
+        } = results
+
+        if (
+          user &&
+          primaryEmailCheckActive &&
+          UserPrimaryEmailCheckHandler.requiresPrimaryEmailCheck(user)
+        ) {
+          return res.redirect('/user/emails/primary-email-check')
+        }
 
         const userEmails = userEmailsData.list || []
 
@@ -557,9 +604,8 @@ const ProjectController = {
           delete req.session.saml
         }
 
-        const portalTemplates = ProjectController._buildPortalTemplatesList(
-          userAffiliations
-        )
+        const portalTemplates =
+          ProjectController._buildPortalTemplatesList(userAffiliations)
         const projects = ProjectController._buildProjectList(
           results.projects,
           userId
@@ -572,6 +618,12 @@ const ProjectController = {
             () => {}
           )
         }
+
+        // Persistent upgrade prompts
+        const showToolbarUpgradePrompt =
+          persistentUpgradePromptsAssignment.variant === 'persistent-upgrade' &&
+          !results.hasSubscription &&
+          !userEmails.some(e => e.emailHasInstitutionLicence)
 
         ProjectController._injectProjectUsers(projects, (error, projects) => {
           if (error != null) {
@@ -593,6 +645,9 @@ const ProjectController = {
             reconfirmedViaSAML,
             zipFileSizeLimit: Settings.maxUploadSize,
             isOverleaf: !!Settings.overleaf,
+            metadata: { viewport: false },
+            showThinFooter: true, // don't show the fat footer on the projects dashboard, as there's a fixed space available
+            showToolbarUpgradePrompt,
           }
 
           const paidUser =
@@ -612,8 +667,9 @@ const ProjectController = {
           }
 
           // null test targeting logged in users
-          SplitTestV2Handler.promises.getAssignmentForSession(
-            req.session,
+          SplitTestHandler.promises.getAssignment(
+            req,
+            res,
             'null-test-dashboard'
           )
 
@@ -669,6 +725,12 @@ const ProjectController = {
           if (userId == null) {
             cb(null, defaultSettingsForAnonymousUser(userId))
           } else {
+            User.updateOne(
+              { _id: ObjectId(userId) },
+              { $set: { lastActive: new Date() } },
+              {},
+              () => {}
+            )
             User.findById(
               userId,
               'email first_name last_name referal_id signUpDate featureSwitches features featuresEpoch refProviders alphaProgram betaProgram isAdmin ace',
@@ -690,11 +752,40 @@ const ProjectController = {
             )
           }
         },
+        userHasInstitutionLicence(cb) {
+          if (!userId) {
+            return cb(null, false)
+          }
+          InstitutionsFeatures.hasLicence(userId, (error, hasLicence) => {
+            if (error) {
+              // Don't fail if we can't get affiliation licences
+              return cb(null, false)
+            }
+            cb(null, hasLicence)
+          })
+        },
+        learnedWords(cb) {
+          if (!userId) {
+            return cb(null, [])
+          }
+          SpellingHandler.getUserDictionary(userId, cb)
+        },
         subscription(cb) {
           if (userId == null) {
             return cb()
           }
           SubscriptionLocator.getUsersSubscription(userId, cb)
+        },
+        userIsMemberOfGroupSubscription(cb) {
+          if (sessionUser == null) {
+            return cb(null, false)
+          }
+          LimitationsManager.userIsMemberOfGroupSubscription(
+            sessionUser,
+            (error, isMember) => {
+              cb(error, isMember)
+            }
+          )
         },
         activate(cb) {
           InactiveProjectManager.reactivateProjectIfRequired(projectId, cb)
@@ -730,9 +821,9 @@ const ProjectController = {
           TpdsProjectFlusher.flushProjectToTpdsIfNeeded(projectId, cb)
         },
         sharingModalSplitTest(cb) {
-          SplitTestV2Handler.assignInLocalsContextForSession(
+          SplitTestHandler.getAssignment(
+            req,
             res,
-            req.session,
             'project-share-modal-paywall',
             {},
             () => {
@@ -743,9 +834,9 @@ const ProjectController = {
         },
         sharingModalNullTest(cb) {
           // null test targeting logged in users, for front-end side
-          SplitTestV2Handler.assignInLocalsContextForSession(
+          SplitTestHandler.getAssignment(
+            req,
             res,
-            req.session,
             'null-test-share-modal',
             {},
             () => {
@@ -754,14 +845,62 @@ const ProjectController = {
             }
           )
         },
-        newPdfPreviewAssignment(cb) {
-          SplitTestV2Handler.getAssignmentForSession(
-            req.session,
-            'react-pdf-preview-rollout',
+        newSourceEditorAssignment(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'source-editor',
             {},
             (error, assignment) => {
+              // do not fail editor load if assignment fails
               if (error) {
-                // do not fail editor load if assignment fails
+                cb(null)
+              } else {
+                cb(null, assignment)
+              }
+            }
+          )
+        },
+        pdfDetachAssignment(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'pdf-detach',
+            {},
+            (error, assignment) => {
+              // do not fail editor load if assignment fails
+              if (error) {
+                cb(null)
+              } else {
+                cb(null, assignment)
+              }
+            }
+          )
+        },
+        pdfjsAssignment(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'pdfjs',
+            {},
+            (error, assignment) => {
+              // do not fail editor load if assignment fails
+              if (error) {
+                cb(null, { variant: 'default' })
+              } else {
+                cb(null, assignment)
+              }
+            }
+          )
+        },
+        persistentUpgradePromptsAssignment(cb) {
+          SplitTestHandler.getAssignment(
+            req,
+            res,
+            'persistent-upgrade-prompt',
+            (error, assignment) => {
+              // do not fail editor load if assignment fails
+              if (error) {
                 cb(null, { variant: 'default' })
               } else {
                 cb(null, assignment)
@@ -775,10 +914,16 @@ const ProjectController = {
         {
           project,
           user,
+          userHasInstitutionLicence,
+          learnedWords,
           subscription,
+          userIsMemberOfGroupSubscription,
           isTokenMember,
           brandVariation,
-          newPdfPreviewAssignment,
+          newSourceEditorAssignment,
+          pdfDetachAssignment,
+          pdfjsAssignment,
+          persistentUpgradePromptsAssignment,
         }
       ) => {
         if (err != null) {
@@ -789,9 +934,8 @@ const ProjectController = {
           req,
           projectId
         )
-        const allowedImageNames = ProjectHelper.getAllowedImagesForUser(
-          sessionUser
-        )
+        const allowedImageNames =
+          ProjectHelper.getAllowedImagesForUser(sessionUser)
 
         AuthorizationManager.getPrivilegeLevelForProject(
           userId,
@@ -844,8 +988,6 @@ const ProjectController = {
               })
             }
 
-            const logsUIVariant = getNewLogsUIVariantForUser(user)
-
             function shouldDisplayFeature(name, variantFlag) {
               if (req.query && req.query[name]) {
                 return req.query[name] === 'true'
@@ -865,14 +1007,9 @@ const ProjectController = {
               return shouldDisplayFeature('enable_pdf_caching', false)
             }
 
-            let showNewPdfPreview = shouldDisplayFeature(
-              'new_pdf_preview',
-              newPdfPreviewAssignment.variant === 'react-pdf-preview'
-            )
-
             const showPdfDetach = shouldDisplayFeature(
               'pdf_detach',
-              user.alphaProgram
+              pdfDetachAssignment.variant === 'enabled'
             )
 
             const debugPdfDetach = shouldDisplayFeature('debug_pdf_detach')
@@ -880,15 +1017,37 @@ const ProjectController = {
             let detachRole = null
 
             if (showPdfDetach) {
-              showNewPdfPreview = true
               detachRole = req.params.detachRole
             }
 
-            res.render('project/editor', {
+            const showNewSourceEditorOption =
+              (newSourceEditorAssignment &&
+                newSourceEditorAssignment.variant === 'codemirror') ||
+              shouldDisplayFeature('new_source_editor', false) // also allow override via ?new_source_editor=true
+
+            const showSymbolPalette =
+              !Features.hasFeature('saas') ||
+              (user.features && user.features.symbolPalette)
+
+            // Persistent upgrade prompts
+            const showHeaderUpgradePrompt =
+              persistentUpgradePromptsAssignment.variant ===
+                'persistent-upgrade' &&
+              userId &&
+              !subscription &&
+              !userIsMemberOfGroupSubscription &&
+              !userHasInstitutionLicence
+
+            const template =
+              detachRole === 'detached'
+                ? 'project/editor_detached'
+                : 'project/editor'
+            res.render(template, {
               title: project.name,
               priority_title: true,
               bodyClasses: ['editor'],
               project_id: project._id,
+              projectName: project.name,
               user: {
                 id: userId,
                 email: user.email,
@@ -902,7 +1061,7 @@ const ProjectController = {
                 refProviders: _.mapValues(user.refProviders, Boolean),
                 alphaProgram: user.alphaProgram,
                 betaProgram: user.betaProgram,
-                isAdmin: user.isAdmin,
+                isAdmin: hasAdminAccess(user),
               },
               userSettings: {
                 mode: user.ace.mode,
@@ -926,6 +1085,7 @@ const ProjectController = {
                 isTokenMember
               ),
               languages: Settings.languages,
+              learnedWords,
               editorThemes: THEME_LIST,
               maxDocLength: Settings.max_doc_length,
               useV2History:
@@ -937,24 +1097,19 @@ const ProjectController = {
               gitBridgePublicBaseUrl: Settings.gitBridgePublicBaseUrl,
               wsUrl,
               showSupport: Features.hasFeature('support'),
-              showNewLogsUI: shouldDisplayFeature(
-                'new_logs_ui',
-                logsUIVariant.newLogsUI
-              ),
-              logsUISubvariant: logsUIVariant.subvariant,
+              pdfjsVariant: pdfjsAssignment.variant,
               showPdfDetach,
               debugPdfDetach,
-              showNewPdfPreview,
-              showNewSourceEditor: shouldDisplayFeature(
-                'new_source_editor',
-                false
-              ),
+              showNewSourceEditorOption,
+              showSymbolPalette,
               trackPdfDownload: partOfPdfCachingRollout('collect-metrics'),
               enablePdfCaching: partOfPdfCachingRollout('enable-caching'),
               resetServiceWorker:
                 Boolean(Settings.resetServiceWorker) &&
                 !shouldDisplayFeature('enable_pdf_caching', false),
               detachRole,
+              metadata: { viewport: false },
+              showHeaderUpgradePrompt,
             })
             timer.done()
           }
@@ -1018,13 +1173,8 @@ const ProjectController = {
 
   _buildProjectList(allProjects, userId) {
     let project
-    const {
-      owned,
-      readAndWrite,
-      readOnly,
-      tokenReadAndWrite,
-      tokenReadOnly,
-    } = allProjects
+    const { owned, readAndWrite, readOnly, tokenReadAndWrite, tokenReadOnly } =
+      allProjects
     const projects = []
     for (project of owned) {
       projects.push(
@@ -1211,21 +1361,46 @@ const defaultSettingsForAnonymousUser = userId => ({
   betaProgram: false,
 })
 
-const THEME_LIST = []
-function generateThemeList() {
-  const files = fs.readdirSync(
-    Path.join(__dirname, '/../../../../node_modules/ace-builds/src-noconflict')
-  )
-  const result = []
-  for (const file of files) {
-    if (file.slice(-2) === 'js' && /^theme-/.test(file)) {
-      const cleanName = file.slice(0, -3).slice(6)
-      result.push(THEME_LIST.push(cleanName))
-    } else {
-      result.push(undefined)
-    }
-  }
-}
-generateThemeList()
+const THEME_LIST = [
+  'ambiance',
+  'chaos',
+  'chrome',
+  'clouds',
+  'clouds_midnight',
+  'cobalt',
+  'crimson_editor',
+  'dawn',
+  'dracula',
+  'dreamweaver',
+  'eclipse',
+  'github',
+  'gob',
+  'gruvbox',
+  'idle_fingers',
+  'iplastic',
+  'katzenmilch',
+  'kr_theme',
+  'kuroir',
+  'merbivore',
+  'merbivore_soft',
+  'mono_industrial',
+  'monokai',
+  'nord_dark',
+  'overleaf',
+  'pastel_on_dark',
+  'solarized_dark',
+  'solarized_light',
+  'sqlserver',
+  'terminal',
+  'textmate',
+  'tomorrow',
+  'tomorrow_night',
+  'tomorrow_night_blue',
+  'tomorrow_night_bright',
+  'tomorrow_night_eighties',
+  'twilight',
+  'vibrant_ink',
+  'xcode',
+]
 
 module.exports = ProjectController

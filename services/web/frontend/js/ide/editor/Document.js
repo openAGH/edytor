@@ -91,6 +91,18 @@ export default Document = (function () {
       this._bindToSocketEvents()
     }
 
+    editorType() {
+      if (this.ace) {
+        return 'ace'
+      } else if (this.cm6) {
+        return 'cm6'
+      } else if (this.cm) {
+        return 'cm-rich-text'
+      } else {
+        return null
+      }
+    }
+
     attachToAce(ace) {
       this.ace = ace
       if (this.doc != null) {
@@ -110,6 +122,8 @@ export default Document = (function () {
       if (editorDoc != null) {
         editorDoc.off('change', this._checkAceConsistency)
       }
+      delete this.ace
+      this.clearChaosMonkey()
       return this.ide.$scope.$emit('document:closed', this.doc)
     }
 
@@ -131,6 +145,8 @@ export default Document = (function () {
       if (this.cm != null) {
         this.cm.off('change', this._checkCMConsistency)
       }
+      delete this.cm
+      this.clearChaosMonkey()
       return this.ide.$scope.$emit('document:closed', this.doc)
     }
 
@@ -152,6 +168,8 @@ export default Document = (function () {
       if (this.cm6 != null) {
         this.cm6.off('change', this._checkCM6Consistency)
       }
+      delete this.cm6
+      this.clearChaosMonkey()
       return this.ide.$scope.$emit('document:closed', this.doc)
     }
 
@@ -335,7 +353,16 @@ export default Document = (function () {
         }
         char = copy[0]
         copy = copy.slice(1)
-        this.ace.session.insert({ row: line, column: pos }, char)
+        if (this.ace) {
+          this.ace.session.insert({ row: line, column: pos }, char)
+        } else if (this.cm6) {
+          this.cm6.view.dispatch({
+            changes: {
+              from: Math.min(pos, this.cm6.view.state.doc.length),
+              insert: char,
+            },
+          })
+        }
         pos += 1
         return (this._cm = setTimeout(
           timer,
@@ -346,7 +373,11 @@ export default Document = (function () {
     }
 
     clearChaosMonkey() {
-      return clearTimeout(this._cm) // pending ops bigger than this are always considered unsaved
+      const timer = this._cm
+      if (timer) {
+        delete this._cm
+        return clearTimeout(timer)
+      }
     }
 
     pollSavedStatus() {
@@ -663,7 +694,7 @@ export default Document = (function () {
           op,
         })
         this.trigger('op:timeout')
-        return this._onError(new Error('op timed out'), { op })
+        return this._onError(new Error('op timed out'))
       })
       this.doc.on('flush', (inflightOp, pendingOp, version) => {
         return this.ide.pushEvent('flush', {
@@ -700,22 +731,6 @@ export default Document = (function () {
       if (error.message === 'no project_id found on client') {
         sl_console.log('ignoring error, will wait to join project')
         return
-      }
-      if (typeof ga === 'function') {
-        // sanitise the error message before sending (the "delete component"
-        // error in public/js/libs/sharejs.js includes the some document
-        // content).
-        let message = error.message
-        if (/^Delete component/.test(message)) {
-          message = 'Delete component does not match deleted text'
-        }
-        ga(
-          'send',
-          'event',
-          'error',
-          'shareJsError',
-          `${message} - ${this.ide.socket.socket.transport.name}`
-        )
       }
       if (this.doc != null) {
         this.doc.clearInflightAndPendingOps()

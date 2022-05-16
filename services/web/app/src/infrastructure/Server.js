@@ -40,6 +40,9 @@ const HttpErrorHandler = require('../Features/Errors/HttpErrorHandler')
 const UserSessionsManager = require('../Features/User/UserSessionsManager')
 const AuthenticationController = require('../Features/Authentication/AuthenticationController')
 const SessionManager = require('../Features/Authentication/SessionManager')
+const {
+  hasAdminAccess,
+} = require('../Features/Helpers/AdminAuthorizationHelper')
 
 const STATIC_CACHE_AGE = Settings.cacheStaticAssets
   ? oneDayInMilliseconds * 365
@@ -97,7 +100,7 @@ Object.defineProperty(app.request, 'ip', {
   },
 })
 app.use(function (req, res, next) {
-  if (req.aborted) {
+  if (req.destroyed) {
     // Request has been aborted already.
     return
   }
@@ -121,23 +124,31 @@ webRouter.get(
   '/serviceWorker.js',
   express.static(Path.join(__dirname, '/../../../public'), {
     maxAge: oneDayInMilliseconds,
+    setHeaders: csp.removeCSPHeaders,
   })
 )
 webRouter.use(
   express.static(Path.join(__dirname, '/../../../public'), {
     maxAge: STATIC_CACHE_AGE,
+    setHeaders: csp.removeCSPHeaders,
   })
 )
 app.set('views', Path.join(__dirname, '/../../views'))
 app.set('view engine', 'pug')
 Modules.loadViewIncludes(app)
 
+Modules.registerAppMiddleware(app)
 app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }))
 app.use(bodyParser.json({ limit: Settings.max_json_request_size }))
 app.use(methodOverride())
 app.use(bearerToken())
 
 app.use(metrics.http.monitor(logger))
+
+if (Settings.blockCrossOriginRequests) {
+  app.use(Csrf.blockCrossOriginRequests())
+}
+
 RedirectManager.apply(webRouter)
 ProxyManager.apply(publicApiRouter)
 
@@ -225,10 +236,7 @@ webRouter.use(SessionAutostartMiddleware.invokeCallbackMiddleware)
 webRouter.use(function (req, res, next) {
   if (Settings.siteIsOpen) {
     next()
-  } else if (
-    SessionManager.getSessionUser(req.session) &&
-    SessionManager.getSessionUser(req.session).isAdmin
-  ) {
+  } else if (hasAdminAccess(SessionManager.getSessionUser(req.session))) {
     next()
   } else {
     HttpErrorHandler.maintenance(req, res)
@@ -270,7 +278,7 @@ webRouter.use(
 // add CSP header to HTML-rendering routes, if enabled
 if (Settings.csp && Settings.csp.enabled) {
   logger.info('adding CSP header to rendered routes', Settings.csp)
-  webRouter.use(csp(Settings.csp))
+  app.use(csp(Settings.csp))
 }
 
 logger.info('creating HTTP server'.yellow)

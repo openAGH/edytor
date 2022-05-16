@@ -11,11 +11,7 @@ export const MinimalFeatures = args => {
 
   return <FileTreeModalCreateFile {...args} />
 }
-MinimalFeatures.decorators = [
-  createFileModalDecorator({
-    userHasFeature: () => false,
-  }),
-]
+MinimalFeatures.decorators = [createFileModalDecorator()]
 
 export const WithExtraFeatures = args => {
   useFetchMock(mockCreateFileModalFetch)
@@ -82,20 +78,25 @@ export const FileLimitReached = args => {
   return <FileTreeModalCreateFile {...args} />
 }
 FileLimitReached.decorators = [
-  createFileModalDecorator({
-    rootFolder: [
-      {
-        docs: Array.from({ length: 10 }, (_, index) => ({
-          _id: `entity-${index}`,
-        })),
-        fileRefs: [],
-        folders: [],
-      },
-    ],
-  }),
+  createFileModalDecorator(
+    {},
+    {
+      rootFolder: [
+        {
+          _id: 'root-folder-id',
+          name: 'rootFolder',
+          docs: Array.from({ length: 10 }, (_, index) => ({
+            _id: `entity-${index}`,
+          })),
+          fileRefs: [],
+          folders: [],
+        },
+      ],
+    }
+  ),
 ]
 
 export default {
-  title: 'Modals / Create File',
+  title: 'Editor / Modals / Create File',
   component: FileTreeModalCreateFile,
 }

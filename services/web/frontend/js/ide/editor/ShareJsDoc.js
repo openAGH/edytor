@@ -335,10 +335,8 @@ export default ShareJsDoc = (function () {
       // end-to-end check for edits -> acks, for this very ShareJsdoc
       // This will catch a broken connection and missing UX-blocker for the
       //  user, allowing them to keep editing.
-      this._detachEditorWatchdogManager = this.EditorWatchdogManager.attachToEditor(
-        editorName,
-        editor
-      )
+      this._detachEditorWatchdogManager =
+        this.EditorWatchdogManager.attachToEditor(editorName, editor)
     }
 
     _attachToEditor(editorName, editor, attachToShareJs) {
@@ -357,7 +355,7 @@ export default ShareJsDoc = (function () {
 
     attachToAce(ace) {
       this._attachToEditor('Ace', ace, () => {
-        this._doc.attach_ace(ace, false, window.maxDocLength)
+        this._doc.attach_ace(ace, window.maxDocLength)
       })
     }
 
@@ -370,7 +368,7 @@ export default ShareJsDoc = (function () {
 
     attachToCM(cm) {
       this._attachToEditor('CM', cm, () => {
-        this._doc.attach_cm(cm, false)
+        this._doc.attach_cm(cm, window.maxDocLength)
       })
     }
 
@@ -383,7 +381,7 @@ export default ShareJsDoc = (function () {
 
     attachToCM6(cm6) {
       this._attachToEditor('CM6', cm6, () => {
-        cm6.attachShareJs(this._doc)
+        cm6.attachShareJs(this._doc, window.maxDocLength)
       })
     }
 

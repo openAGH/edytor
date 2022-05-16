@@ -2,7 +2,7 @@
     camelcase,
 */
 const Settings = require('@overleaf/settings')
-const logger = require('logger-sharelatex')
+const logger = require('@overleaf/logger')
 const RedisClientManager = require('./RedisClientManager')
 const SafeJsonParse = require('./SafeJsonParse')
 const EventLogger = require('./EventLogger')
@@ -20,6 +20,7 @@ const RESTRICTED_USER_MESSAGE_TYPE_PASS_LIST = [
   'reciveNewFile',
   'reciveNewFolder',
   'removeEntity',
+  'accept-changes',
 ]
 
 let WebsocketLoadBalancer

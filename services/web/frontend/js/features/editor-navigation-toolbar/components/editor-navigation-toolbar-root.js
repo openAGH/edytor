@@ -69,9 +69,8 @@ const EditorNavigationToolbarRoot = React.memo(
       pdfLayout,
     } = useLayoutContext(layoutContextPropTypes)
 
-    const { markMessagesAsRead, unreadMessageCount } = useChatContext(
-      chatContextPropTypes
-    )
+    const { markMessagesAsRead, unreadMessageCount } =
+      useChatContext(chatContextPropTypes)
 
     const toggleChatOpen = useCallback(() => {
       if (!chatIsOpen) {
@@ -139,8 +138,6 @@ const EditorNavigationToolbarRoot = React.memo(
         pdfButtonIsVisible={pdfLayout === 'flat'}
         togglePdfView={togglePdfView}
         trackChangesVisible={trackChangesVisible}
-        pdfLayout={pdfLayout}
-        view={view}
       />
     )
   }

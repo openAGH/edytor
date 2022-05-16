@@ -1,4 +1,4 @@
-const logger = require('logger-sharelatex')
+const logger = require('@overleaf/logger')
 const UpdatesManager = require('./UpdatesManager')
 const DiffGenerator = require('./DiffGenerator')
 const DocumentUpdaterManager = require('./DocumentUpdaterManager')
@@ -162,7 +162,7 @@ async function makeTempDirectory() {
  * Clean up a temporary directory made with makeTempDirectory()
  */
 function cleanupTempDirectory(tmpdir) {
-  fs.promises.rmdir(tmpdir, { recursive: true }).catch(err => {
+  fs.promises.rm(tmpdir, { recursive: true, force: true }).catch(err => {
     if (err) {
       logger.warn({ err, tmpdir }, 'Failed to clean up temp directory')
     }

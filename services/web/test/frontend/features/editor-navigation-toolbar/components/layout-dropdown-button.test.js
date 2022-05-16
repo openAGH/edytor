@@ -1,10 +1,14 @@
 import sinon from 'sinon'
+import fetchMock from 'fetch-mock'
+import { expect } from 'chai'
 import { fireEvent, screen } from '@testing-library/react'
 import LayoutDropdownButton from '../../../../../frontend/js/features/editor-navigation-toolbar/components/layout-dropdown-button'
 import { renderWithEditorContext } from '../../../helpers/render-with-context'
+import * as eventTracking from '../../../../../frontend/js/infrastructure/event-tracking'
 
 describe('<LayoutDropdownButton />', function () {
   let openStub
+  let sendMBSpy
   const defaultUi = {
     pdfLayout: 'flat',
     view: 'pdf',
@@ -12,10 +16,15 @@ describe('<LayoutDropdownButton />', function () {
 
   beforeEach(function () {
     openStub = sinon.stub(window, 'open')
+    sendMBSpy = sinon.spy(eventTracking, 'sendMB')
+    window.metaAttributesCache = new Map()
   })
 
   afterEach(function () {
     openStub.restore()
+    sendMBSpy.restore()
+    window.metaAttributesCache = new Map()
+    fetchMock.restore()
   })
 
   it('should mark current layout option as selected', function () {
@@ -35,16 +44,98 @@ describe('<LayoutDropdownButton />', function () {
     })
   })
 
-  it('should show processing when detaching', function () {
+  it('should not select any option in history view', function () {
+    // Selected is aria-label, visually we show a checkmark
     renderWithEditorContext(<LayoutDropdownButton />, {
-      ui: { ...defaultUi, view: 'editor' },
+      ui: { ...defaultUi, view: 'history' },
     })
-
-    const menuItem = screen.getByRole('menuitem', {
+    screen.getByRole('menuitem', {
+      name: 'Editor & PDF',
+    })
+    screen.getByRole('menuitem', {
+      name: 'PDF only (hide editor)',
+    })
+    screen.getByRole('menuitem', {
+      name: 'Editor only (hide PDF)',
+    })
+    screen.getByRole('menuitem', {
       name: 'PDF in separate tab',
     })
-    fireEvent.click(menuItem)
+  })
 
-    screen.getByText('Layout processing')
+  it('should treat file and editor views the same way', function () {
+    // Selected is aria-label, visually we show a checkmark
+    renderWithEditorContext(<LayoutDropdownButton />, {
+      ui: {
+        pdfLayout: 'flat',
+        view: 'file',
+      },
+    })
+    screen.getByRole('menuitem', {
+      name: 'Editor & PDF',
+    })
+    screen.getByRole('menuitem', {
+      name: 'PDF only (hide editor)',
+    })
+    screen.getByRole('menuitem', {
+      name: 'Selected Editor only (hide PDF)',
+    })
+    screen.getByRole('menuitem', {
+      name: 'PDF in separate tab',
+    })
+  })
+
+  describe('on detach', function () {
+    beforeEach(function () {
+      renderWithEditorContext(<LayoutDropdownButton />, {
+        ui: { ...defaultUi, view: 'editor' },
+      })
+
+      const menuItem = screen.getByRole('menuitem', {
+        name: 'PDF in separate tab',
+      })
+      fireEvent.click(menuItem)
+    })
+
+    it('should show processing', function () {
+      screen.getByText('Layout processing')
+    })
+
+    it('should record event', function () {
+      sinon.assert.calledWith(sendMBSpy, 'project-layout-detach')
+    })
+  })
+
+  describe('on layout change / reattach', function () {
+    beforeEach(function () {
+      window.metaAttributesCache.set('ol-detachRole', 'detacher')
+      renderWithEditorContext(<LayoutDropdownButton />, {
+        ui: { ...defaultUi, view: 'editor' },
+      })
+
+      const menuItem = screen.getByRole('menuitem', {
+        name: 'Editor only (hide PDF)',
+      })
+      fireEvent.click(menuItem)
+    })
+
+    it('should not show processing', function () {
+      const processingText = screen.queryByText('Layout processing')
+      expect(processingText).to.not.exist
+    })
+
+    it('should record events', function () {
+      sinon.assert.calledWith(sendMBSpy, 'project-layout-reattach')
+      sinon.assert.calledWith(sendMBSpy, 'project-layout-change', {
+        layout: 'flat',
+        view: 'editor',
+      })
+    })
+
+    it('should select new menu item', function () {
+      screen.getByRole('menuitem', {
+        name: 'Selected Editor only (hide PDF)',
+      })
+    })
   })
 })

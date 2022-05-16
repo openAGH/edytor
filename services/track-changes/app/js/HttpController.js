@@ -17,7 +17,7 @@ const DiffManager = require('./DiffManager')
 const PackManager = require('./PackManager')
 const RestoreManager = require('./RestoreManager')
 const ZipManager = require('./ZipManager')
-const logger = require('logger-sharelatex')
+const logger = require('@overleaf/logger')
 const HealthChecker = require('./HealthChecker')
 const _ = require('underscore')
 const Path = require('path')
@@ -238,7 +238,7 @@ module.exports = HttpController = {
     UpdatesManager.exportProject(
       project_id,
       function (err, { updates, userIds }, confirmWrite) {
-        const abortStreaming = req.aborted || res.finished || res.destroyed
+        const abortStreaming = req.destroyed || res.finished || res.destroyed
         if (abortStreaming) {
           // Tell the producer to stop emitting data
           if (confirmWrite) confirmWrite(new Error('stop'))

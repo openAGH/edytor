@@ -8,7 +8,9 @@ import OError from '@overleaf/o-error'
 /**
  * @typedef {Object} FetchOptions
  * @extends RequestInit
- * @property {Object} body
+ * @property {Object} [body]
+ * @property {Boolean} [swallowAbortError] Set to false for throwing AbortErrors.
+ * @property {AbortSignal} [signal] Allows aborting a request via AbortController
  */
 
 /**
@@ -128,6 +130,7 @@ function fetchJSON(
     headers = {},
     method = 'GET',
     credentials = 'same-origin',
+    swallowAbortError = true,
     ...otherOptions
   }
 ) {
@@ -187,16 +190,17 @@ function fetchJSON(
       },
       error => {
         // swallow the error if the fetch was cancelled (e.g. by cancelling an AbortController on component unmount)
-        if (error.name !== 'AbortError') {
-          // the fetch failed
-          reject(
-            new FetchError(
-              'There was an error fetching the JSON',
-              path,
-              options
-            ).withCause(error)
-          )
+        if (swallowAbortError && error.name === 'AbortError') {
+          return
         }
+        // the fetch failed
+        reject(
+          new FetchError(
+            'There was an error fetching the JSON',
+            path,
+            options
+          ).withCause(error)
+        )
       }
     )
   })

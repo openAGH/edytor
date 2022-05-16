@@ -1,4 +1,4 @@
-import { useState, useEffect, createRef, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import scrollIntoViewIfNeeded from 'scroll-into-view-if-needed'
 import classNames from 'classnames'
@@ -18,7 +18,7 @@ function OutlineItem({ outlineItem, jumpToLine, highlightedLine }) {
   const { t } = useTranslation()
 
   const [expanded, setExpanded] = useState(true)
-  const titleElementRef = createRef()
+  const titleElementRef = useRef()
   const isHighlightedRef = useRef(false)
 
   const mainItemClasses = classNames('outline-item', {
@@ -40,12 +40,9 @@ function OutlineItem({ outlineItem, jumpToLine, highlightedLine }) {
     setExpanded(!expanded)
   }
 
-  function handleOutlineItemLinkClick() {
-    jumpToLine(outlineItem.line, false)
-  }
-
-  function handleOutlineItemLinkDoubleClick() {
-    jumpToLine(outlineItem.line, true)
+  function handleOutlineItemLinkClick(event) {
+    const syncToPdf = event.detail === 2 // double-click = sync to PDF
+    jumpToLine(outlineItem.line, syncToPdf)
   }
 
   useEffect(() => {
@@ -80,14 +77,13 @@ function OutlineItem({ outlineItem, jumpToLine, highlightedLine }) {
           >
             <Icon
               type={expanded ? 'angle-down' : 'angle-right'}
-              classes={{ icon: 'outline-caret-icon' }}
+              className="outline-caret-icon"
             />
           </button>
         ) : null}
         <button
           className={itemLinkClasses}
           onClick={handleOutlineItemLinkClick}
-          onDoubleClick={handleOutlineItemLinkDoubleClick}
           ref={titleElementRef}
         >
           {outlineItem.title}

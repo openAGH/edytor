@@ -14,6 +14,8 @@ const SessionManager = require('../Authentication/SessionManager')
 const UserMembershipHandler = require('./UserMembershipHandler')
 const Errors = require('../Errors/Errors')
 const EmailHelper = require('../Helpers/EmailHelper')
+const { csvAttachment } = require('../../infrastructure/Response')
+const { UserIsManagerError } = require('./UserMembershipErrors')
 const CSVParser = require('json2csv').Parser
 
 module.exports = {
@@ -31,9 +33,8 @@ module.exports = {
           if (error != null) {
             return next(error)
           }
-          const entityPrimaryKey = entity[
-            entityConfig.fields.primaryKey
-          ].toString()
+          const entityPrimaryKey =
+            entity[entityConfig.fields.primaryKey].toString()
           if (entityConfig.fields.name) {
             entityName = entity[entityConfig.fields.name]
           }
@@ -119,7 +120,7 @@ module.exports = {
       entityConfig,
       userId,
       function (error, user) {
-        if (error != null ? error.isAdmin : undefined) {
+        if (error && error instanceof UserIsManagerError) {
           return res.status(400).json({
             error: {
               code: 'managers_cannot_remove_admin',
@@ -137,7 +138,7 @@ module.exports = {
 
   exportCsv(req, res, next) {
     const { entity, entityConfig } = req
-    const fields = ['email', 'last_logged_in_at']
+    const fields = ['email', 'last_logged_in_at', 'last_active_at']
 
     return UserMembershipHandler.getUsers(
       entity,
@@ -147,9 +148,7 @@ module.exports = {
           return next(error)
         }
         const csvParser = new CSVParser({ fields })
-        res.header('Content-Disposition', 'attachment; filename=Group.csv')
-        res.contentType('text/csv')
-        return res.send(csvParser.parse(users))
+        csvAttachment(res, csvParser.parse(users), 'Group.csv')
       }
     )
   },

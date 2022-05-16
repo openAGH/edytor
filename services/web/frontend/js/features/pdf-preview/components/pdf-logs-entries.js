@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import PreviewLogsPaneMaxEntries from '../../preview/components/preview-logs-pane-max-entries'
 import PdfLogEntry from './pdf-log-entry'
 import { useIdeContext } from '../../../shared/context/ide-context'
+import useDetachAction from '../../../shared/hooks/use-detach-action'
 
 const LOG_PREVIEW_LIMIT = 100
 
@@ -12,7 +13,7 @@ function PdfLogsEntries({ entries, hasErrors }) {
 
   const ide = useIdeContext()
 
-  const syncToEntry = useCallback(
+  const _syncToEntry = useCallback(
     entry => {
       const entity = ide.fileTreeManager.findEntityByPath(entry.file)
 
@@ -24,6 +25,13 @@ function PdfLogsEntries({ entries, hasErrors }) {
       }
     },
     [ide]
+  )
+
+  const syncToEntry = useDetachAction(
+    'sync-to-entry',
+    _syncToEntry,
+    'detached',
+    'detacher'
   )
 
   const logEntries = entries.slice(0, LOG_PREVIEW_LIMIT)
@@ -40,11 +48,10 @@ function PdfLogsEntries({ entries, hasErrors }) {
       {logEntries.map(logEntry => (
         <PdfLogEntry
           key={logEntry.key}
+          ruleId={logEntry.ruleId}
           headerTitle={logEntry.message}
           rawContent={logEntry.content}
           logType={logEntry.type}
-          formattedContent={logEntry.humanReadableHintComponent}
-          extraInfoURL={logEntry.extraInfoURL}
           level={logEntry.level}
           entryAriaLabel={t('log_entry_description', {
             level: logEntry.level,

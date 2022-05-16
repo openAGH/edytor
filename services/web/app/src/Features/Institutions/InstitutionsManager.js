@@ -125,11 +125,8 @@ async function checkInstitutionUsers(institutionId, emitNonProUserIds) {
   )
   result.ssoUsers.current.entitled = entitled
 
-  const {
-    allSsoUsers,
-    allSsoUsersByIds,
-    currentNotEntitledCount,
-  } = await _getSsoUsers(institutionId, lapsedUserIds)
+  const { allSsoUsers, allSsoUsersByIds, currentNotEntitledCount } =
+    await _getSsoUsers(institutionId, lapsedUserIds)
   result.ssoUsers.total = allSsoUsers.length
   result.ssoUsers.current.notEntitled = currentNotEntitledCount
 
@@ -329,11 +326,7 @@ const notifyUser = (
         }
       },
       function (cb) {
-        if (
-          subscription &&
-          !subscription.planCode.match(/(free|trial)/) &&
-          !subscription.groupPlan
-        ) {
+        if (subscription && !subscription.groupPlan) {
           NotificationsBuilder.redundantPersonalSubscription(
             affiliation,
             user

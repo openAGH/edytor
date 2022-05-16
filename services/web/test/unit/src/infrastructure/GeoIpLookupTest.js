@@ -47,6 +47,7 @@ describe('GeoIpLookup', function () {
       expect(this.GeoIpLookup.isValidCurrencyParam('USD')).to.equal(true)
       expect(this.GeoIpLookup.isValidCurrencyParam('AUD')).to.equal(true)
       expect(this.GeoIpLookup.isValidCurrencyParam('EUR')).to.equal(true)
+      expect(this.GeoIpLookup.isValidCurrencyParam('SGD')).to.equal(true)
       expect(this.GeoIpLookup.isValidCurrencyParam('WAT')).to.equal(false)
       expect(this.GeoIpLookup.isValidCurrencyParam('NON')).to.equal(false)
       expect(this.GeoIpLookup.isValidCurrencyParam('LOL')).to.equal(false)
@@ -227,10 +228,8 @@ describe('GeoIpLookup', function () {
     describe('async', function () {
       it('should return GBP for GB country', async function () {
         this.request.get.callsArgWith(1, null, null, this.stubbedResponse)
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('GBP')
         countryCode.should.equal('GB')
       })
@@ -238,10 +237,8 @@ describe('GeoIpLookup', function () {
       it('should return GBP for gb country', async function () {
         this.stubbedResponse.country_code = 'gb'
         this.request.get.callsArgWith(1, null, null, this.stubbedResponse)
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('GBP')
         countryCode.should.equal('GB')
       })
@@ -249,10 +246,8 @@ describe('GeoIpLookup', function () {
       it('should return USD for US', async function () {
         this.stubbedResponse.country_code = 'US'
         this.request.get.callsArgWith(1, null, null, this.stubbedResponse)
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('USD')
         countryCode.should.equal('US')
       })
@@ -260,30 +255,24 @@ describe('GeoIpLookup', function () {
       it('should return EUR for DE', async function () {
         this.stubbedResponse.country_code = 'DE'
         this.request.get.callsArgWith(1, null, null, this.stubbedResponse)
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('EUR')
         countryCode.should.equal('DE')
       })
 
       it('should default to USD if there is an error', async function () {
         this.request.get.callsArgWith(1, null, null, { error: true })
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('USD')
         expect(countryCode).to.be.undefined
       })
 
       it('should default to USD if there are no details', async function () {
         this.request.get.callsArgWith(1, null, null, {})
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('USD')
         expect(countryCode).to.be.undefined
       })
@@ -291,10 +280,8 @@ describe('GeoIpLookup', function () {
       it('should default to USD if there is no match for their country', async function () {
         this.stubbedResponse.country_code = 'Non existant'
         this.request.get.callsArgWith(1, null, null, this.stubbedResponse)
-        const {
-          currencyCode,
-          countryCode,
-        } = await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
+        const { currencyCode, countryCode } =
+          await this.GeoIpLookup.promises.getCurrencyCode(this.ipAddress)
         currencyCode.should.equal('USD')
         countryCode.should.equal('NON EXISTANT')
       })

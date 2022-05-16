@@ -1,13 +1,13 @@
 {
   "name": "@overleaf/settings",
   "description": "A centralised settings system for Overleaf",
-  "version": "2.1.1",
+  "version": "3.0.0",
   "repository": "overleaf/settings-module",
   "scripts": {
-    "lint": "echo noop",
-    "lint:fix": "echo noop",
-    "format:fix": "echo noop",
-    "format": "echo noop",
+    "lint": "eslint --max-warnings 0 --format unix .",
+    "lint:fix": "eslint --fix .",
+    "format": "prettier --list-different $PWD/'**/*.js'",
+    "format:fix": "prettier --write $PWD/'**/*.js'",
     "test": "echo noop",
     "test:ci": "echo noop"
   }

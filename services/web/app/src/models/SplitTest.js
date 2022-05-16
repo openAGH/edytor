@@ -6,7 +6,7 @@ const MIN_NAME_LENGTH = 3
 const MAX_NAME_LENGTH = 200
 const MIN_VARIANT_NAME_LENGTH = 3
 const MAX_VARIANT_NAME_LENGTH = 255
-const NAME_REGEX = /^[a-zA-Z0-9\-_]+$/
+const NAME_REGEX = /^[a-z0-9-]+$/
 
 const RolloutPercentType = {
   type: Number,
@@ -29,11 +29,6 @@ const VariantSchema = new Schema(
         },
         message: `invalid, cannot be 'default' and must match: ${NAME_REGEX}, got {VALUE}`,
       },
-    },
-    active: {
-      type: Boolean,
-      default: true,
-      required: true,
     },
     rolloutPercent: RolloutPercentType,
     rolloutStripes: [
@@ -65,6 +60,11 @@ const VersionSchema = new Schema(
       default: true,
       required: true,
     },
+    analyticsEnabled: {
+      type: Boolean,
+      default: true,
+      required: true,
+    },
     variants: [VariantSchema],
     createdAt: {
       type: Date,
@@ -91,6 +91,27 @@ const SplitTestSchema = new Schema({
   versions: [VersionSchema],
   forbidReleasePhase: {
     type: Boolean,
+    required: false,
+  },
+  description: {
+    type: String,
+    required: false,
+  },
+  expectedEndDate: {
+    type: Date,
+    required: false,
+  },
+  ticketUrl: {
+    type: String,
+    required: false,
+  },
+  reportsUrls: {
+    type: [String],
+    required: false,
+    default: [],
+  },
+  winningVariant: {
+    type: String,
     required: false,
   },
 })

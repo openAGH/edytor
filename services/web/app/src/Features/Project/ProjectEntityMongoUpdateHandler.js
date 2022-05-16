@@ -160,7 +160,7 @@ async function replaceFileWithNew(projectId, fileId, newFileRef) {
   })
   await _insertDeletedFileReference(projectId, fileRef)
   const newProject = await Project.findOneAndUpdate(
-    { _id: project._id },
+    { _id: project._id, [path.mongo]: { $exists: true } },
     {
       $set: {
         [`${path.mongo}._id`]: newFileRef._id,
@@ -173,14 +173,20 @@ async function replaceFileWithNew(projectId, fileId, newFileRef) {
         [`${path.mongo}.rev`]: 1,
       },
     },
+    // Note: Mongoose uses new:true to return the modified document
+    // https://mongoosejs.com/docs/api.html#model_Model.findOneAndUpdate
+    // but Mongo uses returnNewDocument:true instead
+    // https://docs.mongodb.com/manual/reference/method/db.collection.findOneAndUpdate/
+    // We are using Mongoose here, but if we ever switch to a direct mongo call
+    // the next line will need to be updated.
     { new: true }
   ).exec()
-  // Note: Mongoose uses new:true to return the modified document
-  // https://mongoosejs.com/docs/api.html#model_Model.findOneAndUpdate
-  // but Mongo uses returnNewDocument:true instead
-  // https://docs.mongodb.com/manual/reference/method/db.collection.findOneAndUpdate/
-  // We are using Mongoose here, but if we ever switch to a direct mongo call
-  // the next line will need to be updated.
+  if (newProject == null) {
+    throw new OError('Project not found or path not found in filetree', {
+      projectId,
+      path,
+    })
+  }
   return { oldFileRef: fileRef, project, path, newProject }
 }
 
@@ -196,7 +202,7 @@ async function replaceDocWithFile(projectId, docId, fileRef) {
   })
   const folderMongoPath = _getParentMongoPath(path.mongo)
   const newProject = await Project.findOneAndUpdate(
-    { _id: project._id },
+    { _id: project._id, [folderMongoPath]: { $exists: true } },
     {
       $pull: {
         [`${folderMongoPath}.docs`]: { _id: docId },
@@ -208,6 +214,12 @@ async function replaceDocWithFile(projectId, docId, fileRef) {
     },
     { new: true }
   ).exec()
+  if (newProject == null) {
+    throw new OError('Project not found or path not found in filetree', {
+      projectId,
+      path,
+    })
+  }
   return newProject
 }
 
@@ -223,7 +235,7 @@ async function replaceFileWithDoc(projectId, fileId, newDoc) {
   })
   const folderMongoPath = _getParentMongoPath(path.mongo)
   const newProject = await Project.findOneAndUpdate(
-    { _id: project._id },
+    { _id: project._id, [folderMongoPath]: { $exists: true } },
     {
       $pull: {
         [`${folderMongoPath}.fileRefs`]: { _id: fileId },
@@ -235,6 +247,12 @@ async function replaceFileWithDoc(projectId, fileId, newDoc) {
     },
     { new: true }
   ).exec()
+  if (newProject == null) {
+    throw new OError('Project not found or path not found in filetree', {
+      projectId,
+      path,
+    })
+  }
   return newProject
 }
 
@@ -257,21 +275,18 @@ async function mkdirp(projectId, path, options = {}) {
   for (const folderName of folders) {
     builtUpPath += `/${folderName}`
     try {
-      const {
-        element: foundFolder,
-      } = await ProjectLocator.promises.findElementByPath({
-        project,
-        path: builtUpPath,
-        exactCaseMatch: options.exactCaseMatch,
-      })
+      const { element: foundFolder } =
+        await ProjectLocator.promises.findElementByPath({
+          project,
+          path: builtUpPath,
+          exactCaseMatch: options.exactCaseMatch,
+        })
       lastFolder = foundFolder
     } catch (err) {
       // Folder couldn't be found. Create it.
       const parentFolderId = lastFolder && lastFolder._id
-      const {
-        folder: newFolder,
-        parentFolderId: newParentFolderId,
-      } = await addFolder(projectId, parentFolderId, folderName)
+      const { folder: newFolder, parentFolderId: newParentFolderId } =
+        await addFolder(projectId, parentFolderId, folderName)
       newFolder.parentFolder_id = newParentFolderId
       lastFolder = newFolder
       newFolders.push(newFolder)
@@ -285,23 +300,19 @@ async function moveEntity(projectId, entityId, destFolderId, entityType) {
     projectId,
     { rootFolder: true, name: true, overleaf: true }
   )
-  const {
-    element: entity,
-    path: entityPath,
-  } = await ProjectLocator.promises.findElement({
-    project,
-    element_id: entityId,
-    type: entityType,
-  })
+  const { element: entity, path: entityPath } =
+    await ProjectLocator.promises.findElement({
+      project,
+      element_id: entityId,
+      type: entityType,
+    })
   // Prevent top-level docs/files with reserved names (to match v1 behaviour)
   if (_blockedFilename(entityPath, entityType)) {
     throw new Errors.InvalidNameError('blocked element name')
   }
   await _checkValidMove(project, entityType, entity, entityPath, destFolderId)
-  const {
-    docs: oldDocs,
-    files: oldFiles,
-  } = await ProjectEntityHandler.promises.getAllEntitiesFromProject(project)
+  const { docs: oldDocs, files: oldFiles } =
+    ProjectEntityHandler.getAllEntitiesFromProject(project)
   // For safety, insert the entity in the destination
   // location first, and then remove the original.  If
   // there is an error the entity may appear twice. This
@@ -328,10 +339,8 @@ async function moveEntity(projectId, entityId, destFolderId, entityType) {
     entityPath.mongo,
     entityId
   )
-  const {
-    docs: newDocs,
-    files: newFiles,
-  } = await ProjectEntityHandler.promises.getAllEntitiesFromProject(newProject)
+  const { docs: newDocs, files: newFiles } =
+    ProjectEntityHandler.getAllEntitiesFromProject(newProject)
   const startPath = entityPath.fileSystem
   const endPath = result.path.fileSystem
   const changes = {
@@ -418,22 +427,24 @@ async function renameEntity(
   // check if the new name already exists in the current folder
   _checkValidElementName(parentFolder, newName)
 
-  const {
-    docs: oldDocs,
-    files: oldFiles,
-  } = await ProjectEntityHandler.promises.getAllEntitiesFromProject(project)
+  const { docs: oldDocs, files: oldFiles } =
+    ProjectEntityHandler.getAllEntitiesFromProject(project)
 
   // we need to increment the project version number for any structure change
   const newProject = await Project.findOneAndUpdate(
-    { _id: projectId },
+    { _id: projectId, [entPath.mongo]: { $exists: true } },
     { $set: { [`${entPath.mongo}.name`]: newName }, $inc: { version: 1 } },
     { new: true }
   ).exec()
+  if (newProject == null) {
+    throw new OError('Project not found or path not found in filetree', {
+      projectId,
+      path: entPath,
+    })
+  }
 
-  const {
-    docs: newDocs,
-    files: newFiles,
-  } = await ProjectEntityHandler.promises.getAllEntitiesFromProject(newProject)
+  const { docs: newDocs, files: newFiles } =
+    ProjectEntityHandler.getAllEntitiesFromProject(newProject)
   return {
     project,
     startPath,
@@ -554,10 +565,16 @@ async function _putElement(project, folderId, element, type) {
   element._id = ObjectId(element._id.toString())
   const mongoPath = `${path.mongo}.${pathSegment}`
   const newProject = await Project.findOneAndUpdate(
-    { _id: project._id },
+    { _id: project._id, [path.mongo]: { $exists: true } },
     { $push: { [mongoPath]: element }, $inc: { version: 1 } },
     { new: true }
   ).exec()
+  if (newProject == null) {
+    throw new OError('Project not found or path not found in filetree', {
+      projectId: project._id,
+      path,
+    })
+  }
   return { result: { path: newPath }, project: newProject }
 }
 
@@ -618,14 +635,12 @@ async function _checkValidMove(
   entityPath,
   destFolderId
 ) {
-  const {
-    element: destEntity,
-    path: destFolderPath,
-  } = await ProjectLocator.promises.findElement({
-    project,
-    element_id: destFolderId,
-    type: 'folder',
-  })
+  const { element: destEntity, path: destFolderPath } =
+    await ProjectLocator.promises.findElement({
+      project,
+      element_id: destFolderId,
+      type: 'folder',
+    })
   // check if there is already a doc/file/folder with the same name
   // in the destination folder
   _checkValidElementName(destEntity, entity.name)

@@ -135,6 +135,11 @@ describe('ProjectDeleter', function () {
     this.Features = {
       hasFeature: sinon.stub().returns(true),
     }
+    this.ChatApiHandler = {
+      promises: {
+        destroyProject: sinon.stub().resolves(),
+      },
+    }
 
     this.ProjectDeleter = SandboxedModule.require(modulePath, {
       requires: {
@@ -143,11 +148,12 @@ describe('ProjectDeleter', function () {
         '../../models/Project': { Project: Project },
         './ProjectHelper': this.ProjectHelper,
         '../../models/DeletedProject': { DeletedProject: DeletedProject },
-        '../DocumentUpdater/DocumentUpdaterHandler': this
-          .DocumentUpdaterHandler,
+        '../DocumentUpdater/DocumentUpdaterHandler':
+          this.DocumentUpdaterHandler,
         '../Tags/TagsHandler': this.TagsHandler,
         '../FileStore/FileStoreHandler': this.FileStoreHandler,
         '../ThirdPartyDataStore/TpdsUpdateSender': this.TpdsUpdateSender,
+        '../Chat/ChatApiHandler': this.ChatApiHandler,
         '../Collaborators/CollaboratorsHandler': this.CollaboratorsHandler,
         '../Collaborators/CollaboratorsGetter': this.CollaboratorsGetter,
         '../Docstore/DocstoreManager': this.DocstoreManager,
@@ -267,10 +273,10 @@ describe('ProjectDeleter', function () {
         deletedProjectOwnerId: this.project.owner_ref,
         deletedProjectCollaboratorIds: this.project.collaberator_refs,
         deletedProjectReadOnlyIds: this.project.readOnly_refs,
-        deletedProjectReadWriteTokenAccessIds: this.project
-          .tokenAccessReadAndWrite_refs,
-        deletedProjectReadOnlyTokenAccessIds: this.project
-          .tokenAccessReadOnly_refs,
+        deletedProjectReadWriteTokenAccessIds:
+          this.project.tokenAccessReadAndWrite_refs,
+        deletedProjectReadOnlyTokenAccessIds:
+          this.project.tokenAccessReadOnly_refs,
         deletedProjectReadWriteToken: this.project.tokens.readAndWrite,
         deletedProjectReadOnlyToken: this.project.tokens.readOnly,
         deletedProjectOverleafId: this.project.overleaf.id,
@@ -488,6 +494,12 @@ describe('ProjectDeleter', function () {
           project_id: this.deletedProjects[0].project._id,
         })
       })
+
+      it('should destroy the chat threads and messages', function () {
+        expect(
+          this.ChatApiHandler.promises.destroyProject
+        ).to.have.been.calledWith(this.deletedProjects[0].project._id)
+      })
     })
 
     describe('when history-v1 is not available', function () {
@@ -575,6 +587,11 @@ describe('ProjectDeleter', function () {
 
       it('should not destroy the files in project-archiver', function () {
         expect(this.TpdsUpdateSender.promises.deleteProject).to.not.have.been
+          .called
+      })
+
+      it('should not destroy the chat threads and messages', function () {
+        expect(this.ChatApiHandler.promises.destroyProject).to.not.have.been
           .called
       })
     })

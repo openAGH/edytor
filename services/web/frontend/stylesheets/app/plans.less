@@ -64,6 +64,9 @@
   .card-header {
     margin-bottom: 15px;
   }
+  .card-byline {
+    min-height: 58px;
+  }
   .circle {
     font-size: 1.5rem;
     font-weight: 700;
@@ -77,9 +80,13 @@
     color: white;
     white-space: nowrap;
     line-height: 1;
-    span.small {
+    .small {
       color: rgba(255, 255, 255, 0.85);
       font-size: @font-size-base * 0.8;
+    }
+    .undiscounted-price {
+      display: block;
+      margin-top: -48px;
     }
   }
   .circle-lg {
@@ -119,18 +126,50 @@
     margin-bottom: @line-height-computed;
   }
   .tagline {
-    margin-bottom: 20px;
+    margin-bottom: 0px;
+  }
+  .special-offer {
+    margin-top: 6px;
+    color: @ol-dark-green;
   }
   ul.nav-pills {
     text-align: center;
     margin-bottom: @line-height-computed;
+    display: flex;
+    justify-content: center;
     li {
       float: none;
       display: inline-block;
+      position: relative;
+      .annual-saving-tooltip {
+        white-space: nowrap;
+        left: 50%;
+        width: 200px;
+        margin-left: -100px;
+        &.bottom {
+          margin-top: 0px;
+        }
+        &.annual-selected {
+          width: 94px;
+          margin-left: -47px;
+          .tooltip-inner {
+            background-color: @ol-green;
+          }
+          .tooltip-arrow {
+            border-bottom-color: @ol-green;
+          }
+        }
+        .tooltip-inner {
+          max-width: none;
+        }
+      }
     }
     > li + li {
       margin-left: @line-height-computed / 2;
     }
+  }
+  ul.nav-pills.above-cards {
+    margin-bottom: @line-height-computed * 2;
   }
 }
 
@@ -196,6 +235,19 @@
       li {
         margin-bottom: @margin-sm;
       }
+    }
+  }
+}
+@media (max-width: @screen-xs-max) {
+  .plans ul.nav-pills {
+    li {
+      a {
+        font-size: @font-size-small;
+        padding: 8px 10px;
+      }
+    }
+    > li + li {
+      margin-left: @margin-sm;
     }
   }
 }

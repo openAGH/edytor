@@ -1,12 +1,11 @@
 const Stream = require('stream')
 const bunyan = require('bunyan')
-const yn = require('yn')
 const GCPManager = require('./gcp-manager')
 const SentryManager = require('./sentry-manager')
 const Serializers = require('./serializers')
 const {
   FileLogLevelChecker,
-  GCEMetadataLogLevelChecker
+  GCEMetadataLogLevelChecker,
 } = require('./log-level-checker')
 
 const LoggingManager = {
@@ -21,9 +20,9 @@ const LoggingManager = {
       serializers: {
         err: Serializers.err,
         req: Serializers.req,
-        res: Serializers.res
+        res: Serializers.res,
       },
-      streams: [this._getOutputStreamConfig()]
+      streams: [this._getOutputStreamConfig()],
     })
     this._setupRingBuffer()
     this._setupLogLevelChecker()
@@ -74,19 +73,29 @@ const LoggingManager = {
   },
 
   _getOutputStreamConfig() {
-    const gcpEnabled = yn(process.env.GCP_LOGGING)
-    if (gcpEnabled) {
-      const stream = new Stream.Writable({
-        objectMode: true,
-        write(entry, encoding, callback) {
-          const gcpEntry = GCPManager.convertLogEntry(entry)
-          console.log(JSON.stringify(gcpEntry, bunyan.safeCycles()))
-          setImmediate(callback)
-        }
-      })
-      return { level: this.defaultLevel, type: 'raw', stream }
-    } else {
-      return { level: this.defaultLevel, stream: process.stdout }
+    switch (process.env.LOGGING_FORMAT) {
+      case 'gke': {
+        const stream = new Stream.Writable({
+          objectMode: true,
+          write(entry, encoding, callback) {
+            const gcpEntry = GCPManager.convertLogEntry(entry)
+            // eslint-disable-next-line no-console
+            console.log(JSON.stringify(gcpEntry, bunyan.safeCycles()))
+            setImmediate(callback)
+          },
+        })
+        return { level: this.defaultLevel, type: 'raw', stream }
+      }
+      case 'gce': {
+        const { LoggingBunyan } = require('@google-cloud/logging-bunyan')
+        return new LoggingBunyan({
+          logName: this.loggerName,
+          serviceContext: { service: this.loggerName },
+        }).stream(this.defaultLevel)
+      }
+      default: {
+        return { level: this.defaultLevel, stream: process.stdout }
+      }
     }
   },
 
@@ -97,7 +106,7 @@ const LoggingManager = {
       this.logger.addStream({
         level: 'trace',
         type: 'raw',
-        stream: this.ringBuffer
+        stream: this.ringBuffer,
       })
     } else {
       this.ringBuffer = null
@@ -117,21 +126,28 @@ const LoggingManager = {
     if (this.isProduction) {
       switch (logLevelSource) {
         case 'file':
-          this.logLevelChecker = new FileLogLevelChecker(this.logger)
+          this.logLevelChecker = new FileLogLevelChecker(
+            this.logger,
+            this.defaultLevel
+          )
           break
         case 'gce_metadata':
-          this.logLevelChecker = new GCEMetadataLogLevelChecker(this.logger)
+          this.logLevelChecker = new GCEMetadataLogLevelChecker(
+            this.logger,
+            this.defaultLevel
+          )
           break
         case 'none':
           break
         default:
+          // eslint-disable-next-line no-console
           console.log(`Unrecognised log level source: ${logLevelSource}`)
       }
       if (this.logLevelChecker) {
         this.logLevelChecker.start()
       }
     }
-  }
+  },
 }
 
 LoggingManager.initialize('default-sharelatex')

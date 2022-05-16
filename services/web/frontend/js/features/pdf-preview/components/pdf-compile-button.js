@@ -4,7 +4,7 @@ import ControlledDropdown from '../../../shared/components/controlled-dropdown'
 import { useTranslation } from 'react-i18next'
 import { memo } from 'react'
 import classnames from 'classnames'
-import { useCompileContext } from '../../../shared/context/compile-context'
+import { useDetachCompileContext as useCompileContext } from '../../../shared/context/detach-compile-context'
 import PdfCompileButtonInner from './pdf-compile-button-inner'
 
 function PdfCompileButton() {
@@ -48,43 +48,43 @@ function PdfCompileButton() {
         <MenuItem header>{t('auto_compile')}</MenuItem>
 
         <MenuItem onSelect={() => setAutoCompile(true)}>
-          <Icon type={autoCompile ? 'check' : ''} modifier="fw" />
+          <Icon type={autoCompile ? 'check' : ''} fw />
           {t('on')}
         </MenuItem>
 
         <MenuItem onSelect={() => setAutoCompile(false)}>
-          <Icon type={!autoCompile ? 'check' : ''} modifier="fw" />
+          <Icon type={!autoCompile ? 'check' : ''} fw />
           {t('off')}
         </MenuItem>
 
         <MenuItem header>{t('compile_mode')}</MenuItem>
 
         <MenuItem onSelect={() => setDraft(false)}>
-          <Icon type={!draft ? 'check' : ''} modifier="fw" />
+          <Icon type={!draft ? 'check' : ''} fw />
           {t('normal')}
         </MenuItem>
 
         <MenuItem onSelect={() => setDraft(true)}>
-          <Icon type={draft ? 'check' : ''} modifier="fw" />
+          <Icon type={draft ? 'check' : ''} fw />
           {t('fast')} <span className="subdued">[draft]</span>
         </MenuItem>
 
         <MenuItem header>Syntax Checks</MenuItem>
 
         <MenuItem onSelect={() => setStopOnValidationError(true)}>
-          <Icon type={stopOnValidationError ? 'check' : ''} modifier="fw" />
+          <Icon type={stopOnValidationError ? 'check' : ''} fw />
           {t('stop_on_validation_error')}
         </MenuItem>
 
         <MenuItem onSelect={() => setStopOnValidationError(false)}>
-          <Icon type={!stopOnValidationError ? 'check' : ''} modifier="fw" />
+          <Icon type={!stopOnValidationError ? 'check' : ''} fw />
           {t('ignore_validation_errors')}
         </MenuItem>
 
         <MenuItem divider />
 
         <MenuItem
-          onSelect={stopCompile}
+          onSelect={() => stopCompile()}
           disabled={!compiling}
           aria-disabled={!compiling}
         >
@@ -92,7 +92,7 @@ function PdfCompileButton() {
         </MenuItem>
 
         <MenuItem
-          onSelect={recompileFromScratch}
+          onSelect={() => recompileFromScratch()}
           disabled={compiling}
           aria-disabled={compiling}
         >

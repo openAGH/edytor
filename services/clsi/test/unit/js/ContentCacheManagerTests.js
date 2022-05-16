@@ -31,16 +31,16 @@ describe('ContentCacheManager', function () {
   }
   before(function () {
     contentDir =
-      '/app/output/602cee6f6460fca0ba7921e6/content/1797a7f48f9-5abc1998509dea1f'
+      '/overleaf/services/clsi/output/602cee6f6460fca0ba7921e6/content/1797a7f48f9-5abc1998509dea1f'
     pdfPath =
-      '/app/output/602cee6f6460fca0ba7921e6/generated-files/1797a7f48ea-8ac6805139f43351/output.pdf'
+      '/overleaf/services/clsi/output/602cee6f6460fca0ba7921e6/generated-files/1797a7f48ea-8ac6805139f43351/output.pdf'
 
     reclaimed = 0
     Settings.pdfCachingMinChunkSize = 1024
   })
 
   before(async function () {
-    await fs.promises.rmdir(contentDir, { recursive: true })
+    await fs.promises.rm(contentDir, { recursive: true, force: true })
     await fs.promises.mkdir(contentDir, { recursive: true })
     await fs.promises.mkdir(Path.dirname(pdfPath), { recursive: true })
   })

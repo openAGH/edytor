@@ -15,7 +15,7 @@
 let CommandRunner
 const { spawn } = require('child_process')
 const _ = require('lodash')
-const logger = require('logger-sharelatex')
+const logger = require('@overleaf/logger')
 
 logger.info('using standard command runner')
 
@@ -50,7 +50,11 @@ module.exports = CommandRunner = {
     }
 
     // run command as detached process so it has its own process group (which can be killed if needed)
-    const proc = spawn(command[0], command.slice(1), { cwd: directory, env })
+    const proc = spawn(command[0], command.slice(1), {
+      cwd: directory,
+      env,
+      stdio: ['pipe', 'pipe', 'ignore'],
+    })
 
     let stdout = ''
     proc.stdout.setEncoding('utf8').on('data', data => (stdout += data))

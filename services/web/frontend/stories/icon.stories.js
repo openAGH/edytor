@@ -33,7 +33,7 @@ export const FixedWidth = args => {
 }
 FixedWidth.args = {
   type: 'tasks',
-  modifier: 'fw',
+  fw: true,
 }
 
 export const AccessibilityLabel = args => {
@@ -45,6 +45,6 @@ AccessibilityLabel.args = {
 }
 
 export default {
-  title: 'Icon',
+  title: 'Shared / Components / Icon',
   component: Icon,
 }

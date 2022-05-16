@@ -49,6 +49,9 @@ describe('UserEmailsController', function () {
       endorseAffiliation: this.endorseAffiliation,
     }
     this.HttpErrorHandler = { conflict: sinon.stub() }
+    this.AnalyticsManager = {
+      recordEventForUser: sinon.stub(),
+    }
     this.UserEmailsController = SandboxedModule.require(modulePath, {
       requires: {
         '../Authentication/SessionManager': this.SessionManager,
@@ -62,14 +65,16 @@ describe('UserEmailsController', function () {
           },
         }),
         '../Helpers/EmailHelper': this.EmailHelper,
-        './UserEmailsConfirmationHandler': (this.UserEmailsConfirmationHandler = {
-          sendReconfirmationEmail: sinon.stub(),
-          promises: {
-            sendConfirmationEmail: sinon.stub().resolves(),
-          },
-        }),
+        './UserEmailsConfirmationHandler': (this.UserEmailsConfirmationHandler =
+          {
+            sendReconfirmationEmail: sinon.stub(),
+            promises: {
+              sendConfirmationEmail: sinon.stub().resolves(),
+            },
+          }),
         '../Institutions/InstitutionsAPI': this.InstitutionsAPI,
         '../Errors/HttpErrorHandler': this.HttpErrorHandler,
+        '../Analytics/AnalyticsManager': this.AnalyticsManager,
       },
     })
   })
@@ -132,8 +137,8 @@ describe('UserEmailsController', function () {
               this.newEmail
             )
 
-            const affiliationOptions = this.UserUpdater.promises.addEmailAddress
-              .lastCall.args[2]
+            const affiliationOptions =
+              this.UserUpdater.promises.addEmailAddress.lastCall.args[2]
             Object.keys(affiliationOptions).length.should.equal(3)
             affiliationOptions.university.should.equal(this.req.body.university)
             affiliationOptions.department.should.equal(this.req.body.department)

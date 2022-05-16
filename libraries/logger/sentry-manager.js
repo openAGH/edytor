@@ -1,3 +1,4 @@
+const OError = require('@overleaf/o-error')
 const RATE_LIMIT_MAX_ERRORS = 5
 const RATE_LIMIT_INTERVAL_MS = 60000
 
@@ -81,7 +82,7 @@ class SentryManager {
           url: req.originalUrl,
           query: req.query,
           headers: req.headers,
-          ip: req.ip
+          ip: req.ip,
         }
       }
 
@@ -94,6 +95,9 @@ class SentryManager {
         }
         error = newError
       }
+
+      // OError integration
+      extra.info = OError.getFullInfo(error)
 
       // filter paths from the message to avoid duplicate errors in sentry
       // (e.g. errors from `fs` methods which have a path attribute)

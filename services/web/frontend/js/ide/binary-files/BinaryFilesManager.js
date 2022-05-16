@@ -18,13 +18,17 @@ export default BinaryFilesManager = class BinaryFilesManager {
     this.$scope.$on('entity:selected', (event, entity) => {
       if (this.$scope.ui.view !== 'track-changes' && entity.type === 'file') {
         return this.openFile(entity)
+      } else if (entity.type === 'doc') {
+        return this.closeFile()
       }
     })
   }
 
   openFile(file) {
     this.ide.fileTreeManager.selectEntity(file)
-    this.$scope.ui.view = 'file'
+    if (this.$scope.ui.view !== 'history') {
+      this.$scope.ui.view = 'file'
+    }
     this.$scope.openFile = null
     this.$scope.$apply()
     return window.setTimeout(
@@ -34,6 +38,20 @@ export default BinaryFilesManager = class BinaryFilesManager {
         this.$scope.$apply()
 
         this.$scope.$broadcast('file-view:file-opened')
+      },
+      0,
+      this
+    )
+  }
+
+  closeFile() {
+    return window.setTimeout(
+      () => {
+        this.$scope.openFile = null
+        if (this.$scope.ui.view !== 'history') {
+          this.$scope.ui.view = 'editor'
+        }
+        this.$scope.$apply()
       },
       0,
       this

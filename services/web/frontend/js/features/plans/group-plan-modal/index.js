@@ -4,8 +4,9 @@ import * as eventTracking from '../../../infrastructure/event-tracking'
 
 function getFormValues() {
   const modalEl = document.querySelector('[data-ol-group-plan-modal]')
-  const planCode = modalEl.querySelector('input[name="plan_code"]:checked')
-    .value
+  const planCode = modalEl.querySelector(
+    'input[name="plan_code"]:checked'
+  ).value
   const size = modalEl.querySelector('#size').value
   const currency = modalEl.querySelector('#currency').value
   const usage = modalEl.querySelector('#usage').checked
@@ -15,16 +16,18 @@ function getFormValues() {
 }
 
 function updateGroupPlanView() {
-  const prices = getMeta('ol-groupPlans')
+  const groupPlans = getMeta('ol-groupPlans')
   const currencySymbols = getMeta('ol-currencySymbols')
 
   const modalEl = document.querySelector('[data-ol-group-plan-modal]')
   const { planCode, size, currency, usage } = getFormValues()
 
-  const price = prices[usage][planCode][currency][size]
+  const priceInCents =
+    groupPlans[usage][planCode][currency][size].price_in_cents
+  const priceInUnit = (priceInCents / 100).toFixed()
   const currencySymbol = currencySymbols[currency]
-  const displayPrice = `${currencySymbol}${price}`
-  const perUserPrice = parseFloat((price / size).toFixed(2))
+  const displayPrice = `${currencySymbol}${priceInUnit}`
+  const perUserPrice = parseFloat((priceInCents / 100 / size).toFixed(2))
 
   modalEl.querySelectorAll('[data-ol-group-plan-plan-code]').forEach(el => {
     el.hidden = el.getAttribute('data-ol-group-plan-plan-code') !== planCode
@@ -32,9 +35,8 @@ function updateGroupPlanView() {
   modalEl.querySelectorAll('[data-ol-group-plan-usage]').forEach(el => {
     el.hidden = el.getAttribute('data-ol-group-plan-usage') !== usage
   })
-  modalEl.querySelector(
-    '[data-ol-group-plan-display-price]'
-  ).innerText = displayPrice
+  modalEl.querySelector('[data-ol-group-plan-display-price]').innerText =
+    displayPrice
   modalEl.querySelector(
     '[data-ol-group-plan-price-per-user]'
   ).innerText = `${currencySymbol}${perUserPrice} per user`
@@ -67,7 +69,7 @@ function showGroupPlanModal() {
     'subscription-funnel',
     'plans-page',
     'group-inquiry-potential'
-  )
+  ) // deprecated by plans-page-click
 }
 
 document
@@ -92,6 +94,12 @@ document.querySelectorAll('[data-ol-purchase-group-plan]').forEach(el =>
     if (itmContent) {
       queryParams.set('itm_content', itmContent)
     }
+    eventTracking.sendMB('groups-modal-click', {
+      plan: planCode,
+      users: size,
+      currency: currency,
+      type: usage,
+    })
     const url = new URL('/user/subscription/new', window.origin)
     url.search = queryParams.toString()
     window.location = url.toString()
@@ -99,8 +107,14 @@ document.querySelectorAll('[data-ol-purchase-group-plan]').forEach(el =>
 )
 
 document.querySelectorAll('[data-ol-open-group-plan-modal]').forEach(el => {
+  const location = el.getAttribute('data-ol-location')
   el.addEventListener('click', function (e) {
     e.preventDefault()
+    eventTracking.sendMB('plans-page-click', {
+      button: 'group',
+      location,
+      period: 'annual',
+    })
     showGroupPlanModal()
   })
 })

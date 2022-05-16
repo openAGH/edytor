@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types'
-import { memo, useCallback, useEffect, useState } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { debounce } from 'lodash'
 import PdfViewerControls from './pdf-viewer-controls'
 import { useProjectContext } from '../../../shared/context/project-context'
@@ -8,18 +8,14 @@ import { buildHighlightElement } from '../util/highlights'
 import PDFJSWrapper from '../util/pdf-js-wrapper'
 import withErrorBoundary from '../../../infrastructure/error-boundary'
 import ErrorBoundaryFallback from './error-boundary-fallback'
-import { useCompileContext } from '../../../shared/context/compile-context'
+import { useDetachCompileContext as useCompileContext } from '../../../shared/context/detach-compile-context'
 import getMeta from '../../../utils/meta'
 
 function PdfJsViewer({ url }) {
   const { _id: projectId } = useProjectContext()
 
-  const {
-    setError,
-    firstRenderDone,
-    highlights,
-    setPosition,
-  } = useCompileContext()
+  const { setError, firstRenderDone, highlights, position, setPosition } =
+    useCompileContext()
   const [timePDFFetched, setTimePDFFetched] = useState()
 
   // state values persisted in localStorage to restore on load
@@ -35,9 +31,15 @@ function PdfJsViewer({ url }) {
   // create the viewer when the container is mounted
   const handleContainer = useCallback(parent => {
     if (parent) {
-      const viewer = new PDFJSWrapper(parent.firstChild)
-      setPdfJsWrapper(viewer)
-      return () => viewer.destroy()
+      const wrapper = new PDFJSWrapper(parent.firstChild)
+      wrapper.init().then(() => {
+        setPdfJsWrapper(wrapper)
+      })
+
+      return () => {
+        setPdfJsWrapper(null)
+        wrapper.destroy()
+      }
     }
   }, [])
 
@@ -86,13 +88,16 @@ function PdfJsViewer({ url }) {
     let storePositionTimer
 
     if (initialised && pdfJsWrapper) {
+      if (!pdfJsWrapper.isVisible()) {
+        return
+      }
+
       // store the scroll position in localStorage, for the synctex button
       const storePosition = debounce(pdfViewer => {
         // set position for "sync to code" button
         try {
           setPosition(pdfViewer.currentPosition)
         } catch (error) {
-          // TODO: investigate handling missing offsetParent in jsdom
           // console.error(error)
         }
       }, 500)
@@ -141,22 +146,28 @@ function PdfJsViewer({ url }) {
   }, [pdfJsWrapper])
 
   // restore the saved scale and scroll position
+  const positionRef = useRef(position)
+  useEffect(() => {
+    positionRef.current = position
+  }, [position])
+
+  const scaleRef = useRef(scale)
+  useEffect(() => {
+    scaleRef.current = scale
+  }, [scale])
+
   useEffect(() => {
     if (initialised && pdfJsWrapper) {
-      setScale(scale => {
-        setPosition(position => {
-          if (position) {
-            pdfJsWrapper.scrollToPosition(position, scale)
-          } else {
-            pdfJsWrapper.viewer.currentScaleValue = scale
-          }
-          return position
-        })
-
-        return scale
-      })
+      if (!pdfJsWrapper.isVisible()) {
+        return
+      }
+      if (positionRef.current) {
+        pdfJsWrapper.scrollToPosition(positionRef.current, scaleRef.current)
+      } else {
+        pdfJsWrapper.viewer.currentScaleValue = scaleRef.current
+      }
     }
-  }, [initialised, setScale, setPosition, pdfJsWrapper])
+  }, [initialised, pdfJsWrapper, scaleRef, positionRef])
 
   // transmit scale value to the viewer when it changes
   useEffect(() => {
@@ -167,29 +178,64 @@ function PdfJsViewer({ url }) {
 
   // when highlights are created, build the highlight elements
   useEffect(() => {
+    const timers = []
+    let intersectionObserver
+
     if (pdfJsWrapper && highlights?.length) {
+      // watch for the highlight elements to scroll into view
+      intersectionObserver = new IntersectionObserver(
+        entries => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              intersectionObserver.unobserve(entry.target)
+
+              // fade the element in and out
+              entry.target.style.opacity = '0.5'
+
+              timers.push(
+                window.setTimeout(() => {
+                  entry.target.style.opacity = '0'
+                }, 1000)
+              )
+            }
+          }
+        },
+        {
+          threshold: 1.0, // the whole element must be visible
+        }
+      )
+
       const elements = []
 
       for (const highlight of highlights) {
         try {
-          const element = buildHighlightElement(highlight, pdfJsWrapper.viewer)
+          const element = buildHighlightElement(highlight, pdfJsWrapper)
           elements.push(element)
+          intersectionObserver.observe(element)
         } catch (error) {
           // ignore invalid highlights
         }
       }
 
-      // scroll to the first highlighted element
-      elements[0]?.scrollIntoView({
-        block: 'nearest',
-        inline: 'start',
-        behavior: 'smooth',
-      })
+      const [firstElement] = elements
+
+      if (firstElement) {
+        // scroll to the first highlighted element
+        firstElement.scrollIntoView({
+          block: 'center',
+          inline: 'start',
+          behavior: 'smooth',
+        })
+      }
 
       return () => {
+        for (const timer of timers) {
+          window.clearTimeout(timer)
+        }
         for (const element of elements) {
           element.remove()
         }
+        intersectionObserver?.disconnect()
       }
     }
   }, [highlights, pdfJsWrapper])

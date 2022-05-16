@@ -100,13 +100,16 @@ if (metadata && metadata.openGraphVideo)
 	meta(property="og:video", content=metadata.openGraphVideo)
 
 //- Viewport
-if metadata && metadata.viewport
+if !metadata || metadata.viewport !== false
 	meta(name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes")
 
 //- Noindex
 if settings.robotsNoindex
 	meta(name="robots" content="noindex")
 
+//- Apple devices
+meta(name="apple-mobile-web-app-capable" content="yes")
+meta(name="apple-mobile-web-app-status-bar-style" content="black-translucent")
 
 //- Icons
 link(rel="icon", href="/favicon.ico")
