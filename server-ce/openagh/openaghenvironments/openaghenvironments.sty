@@ -20,8 +20,11 @@
 \RequirePackage[normalem]{ulem}
 \RequirePackage{listings}
 \RequirePackage[version=4]{mhchem}
+\RequirePackage{tabularx}
+\RequirePackage{refcount}
 % Support packages for LuaLatex and SVG
 \RequirePackage{environ}
+\RequirePackage{ifthen}
 \RequirePackage{ifluatex}
 \ifluatex
   \RequirePackage{pdftexcmds}
@@ -288,6 +291,10 @@
 		return string.char(36)
 	end
 
+	function get_at_sign()
+		return string.char(64)
+	end
+
 	function is_unit_in_dimension(dimension)
 		% -- :match(get_percent_sign() .. "D") resolves to :match("%D")
 		local default_unit_len = 2;
@@ -536,53 +543,12 @@
 	\setcounter{#1}{\value{openaghtmpcounter}}
 }
 
-% OPENREF BACKUP DEFINITION
-%\newcommand{\openref}[1]{%
-%	\ifcsname r@#1\endcsname
-%		\section{EXISTS}
-%	\else
-%		\section{NOT EXISTS}
-%	\fi
-%}
-
-% Creates reference to object if it is visible inside document
-%\makeatletter
-%\newcommand{\openref}[3][\handbookid false]{%
-%	one: #1, two: #2, three: #3,
-%	\@ifundefined{r@#3}{%
-%		\directlua{%
-%		    	local target = "#3"
-%		    	local target_split = string.split(target, ":")
-%		    	local mod_id = target_split[2]
-%		    	local target_obj = target_split[3]
-%		    	local target_n = target_split[4]
-%		    	
-%		    	tex.print("\\openaghreaderroute[#1]{" .. mod_id .. "}{" .. target_n .. "}")
-%		}
-%	}{%
-%		\ifthenelse{\equal{#2}{false}
-%			{\hyperref{#3}{#2}}
-%			{\autoref{#3}}
-%		}
-%	}%
-%}
-%\maekatother
-%\makeatletter
-%\newcommand{\openaghtestxkval}[1]{
-%	\setkeys{openagh@keys}{handbookId=\handbookid,refName=false,linkLabel=false,#1}
-%	
-%	\openagh@refName
-%	\openagh@handbookId
-%	\openagh@linkLabel
-%}
-%\makeatother
-
 \ifdefined\HCode
 % HTML
 \makeatletter
 \newcommand{\openaghref}[1][handbookId=\handbookid,moduleId=\modid,refName=false,linkLabel=false,linkType=false]{%
 \setkeys{openagh@keys}{handbookId=\handbookid,moduleId=\modid,refName=false,linkLabel=false,linkType=false,#1}
-% Check if refName is not present in current document
+% Check if refName is NOT present in current document
 \@ifundefined{r@\openagh@refName}{%
 \directlua{%
 	local target = "\openagh@refName"
@@ -611,8 +577,6 @@
 	local target = "\openagh@refName"
 	local link_label = "\openagh@linkLabel"
 	local link_type = "\openagh@linkType"
-	% -- local ref_star_number = "\ref*{test}"
-	local ref_star_bumber = [[\openaghreaderroute{test}{testy}]]
 	local ref_number_cmd = "\noexpand\\ref*{" .. target .. "}"
 	local ignore_par = get_slash_sign() .. "ifvmode" .. get_slash_sign() .."IgnorePar" .. get_slash_sign() .. "fi"
 	% --
@@ -624,19 +588,10 @@
 	if(target_n and not (target_n == nil)) then
 		tex.sprint(ignore_par..'\noexpand\\HCode{<a href="' .. get_href_hash_sign() .. target .. '">' .. ref_caption .. '</a>}')
 	else
-		tex.sprint(ignore_par..'\noexpand\\HCode{<p class="data-target-tmp-obj" data-target="' .. target .. '"></p>}')
-		tex.sprint(ref_number_cmd)
-		tex.sprint(ignore_par..'\noexpand\\HCode{<a href="' .. get_href_hash_sign() .. target .. '">' .. ref_caption .. '</a>}')
+		tex.sprint(ignore_par..'\noexpand\\HCode{<a class="openagh-ref-command" href="' .. get_href_hash_sign() .. target .. '">' .. ref_caption .. '}')
+		tex.sprint(ignore_par..ref_number_cmd)
+		tex.sprint(ignore_par .. '\noexpand\\HCode{</a>}')
 	end
-	% --
-	% -- if(target_n and not (target_n == "")) then
-	% --	ref_number_cmd = ""
-	% -- end
-	% -- tex.sprint(ignore_par..'\noexpand\\HCode{<a href="' .. get_href_hash_sign() .. target .. '">' .. ref_caption .. ref_number_cmd .. '</a>}')
-	% -- tex.print("\noexpand\\hyperref[" .. target .. "]{" .. ref_number_cmd .. "}")
-	% -- tex.print("\noexpand\\href{" .. get_href_hash_sign() .. target .."}" .. "{" .. ref_caption .. ref_number_cmd .."}")
-	% -- tex.sprint(ignore_par..'\noexpand\\HCode{</a>}')
-	% -- tex.sprint(ignore_par..'\noexpand\\HCode{<a href="' .. get_href_hash_sign() .. target .. '">' .. ref_caption .. '</a>}')
 }%
 }}
 \makeatother
@@ -833,58 +788,6 @@
 \newcommand{\hsix}[1]{\vspace{5mm}\textbf{\footnotesize #1}\newline\vspace{5mm}}
 \fi
 
-% nagłówki numerowalne
-% \chapter
-% \section
-% \subsection
-
-% Wyśrodkuj \begin{center} \end{center}
-
-% Lista numerowana \begin{enumerate} \item... \item... \end{enumerate} - style numerowania? style zagnieżdżonych list
-
-% Lista wypunktowana \begin{itemize} \item... \item... \end{itemize}
-
-% Wiki Link - odnośnik do wzoru, modułu ?? - odnośnik w module \openaghref{label_name}
-
-%\makeatletter
-%\newenvironment{link}[1]
-%{
-%  \@ifundefined{\csname r@#1\endcsname}
-%	{\href{https://google.pl}{Tutaj} jest przedstawiona definicja całki LINK}
-%	{\hyperlink{def:calka}{Tutaj} jest przedstawiona definicja całki}
-%}
-%\makeatother
-%
-%\makeatletter
-%\newenvironment{link_hyper}[1]
-%{
-%  \@ifundefined{@#1}
-%	{\href{https://google.pl}{Tutaj} jest przedstawiona definicja całki LINK}
-%	{\hyperlink{def:calka}{Tutaj} jest przedstawiona definicja całki}
-%}
-%\makeatother
-
-%\newenvironment{target}[2]
-%{
-%  \hypertarget{#1}{#2}
-%}
-
-%\makeatletter
-%\newenvironment{refff}[1]
-%{
-%  \@ifundefined{\csname r@#1\endcsname}
-%	{\href{https://google.pl}{Tutaj} jest przedstawiona definicja całki LINK}
-%	{\ref{def:calka} jest przedstawiona definicja całki}
-%}
-%\makeatother
-%
-% Tabela \begin{tabular} \end{tabular} - \usepackage{array} dla zdefiniowanych szerokości komórek
-%\newenvironment{openaghtable}[2][openaghmod:\modid:openaghtable:\theopenaghtable]
-% Argumenty:
-% 	label - kotwica
-% 	caption - podpis tabeli
-%
-
 \makeatletter
 \ifdefined\HCode
 \newenvironment{openaghequation}[1][label=openaghmod:\modid:openaghequation:\theopenaghmoduleequation]
@@ -898,15 +801,6 @@
 {%
 	\endequation
 }
-% \NewEnviron{openaghequation}
-% {%
-% 	\refstepcounter{openaghmoduleequation}
-% 	\setkeys{openagh@keys}{label=openaghmod:\modid:openaghequation:\theopenaghmoduleequation}
-% 	\openaghlabelenvs{\openagh@label} % TEST!!
-% 	\begin{equation}
-% 		\environbody
-% 	\end{equation}
-% }
 \else
 \newenvironment{openaghequation}[1][label=openaghmod:\modid:openaghequation:\theopenaghmoduleequation]
 {%
@@ -1020,18 +914,23 @@
 	\refstepcounter{openaghtable}
 	\setkeys{openagh@keys}{label=openaghmod:\modid:openaghtable:\theopenaghmoduletable,file={},caption={Opis tabeli},width={},height={},align=center,alt={Tekst alternatywny},#1}
 	\openaghlabelenvs{\openagh@label}
-	\HCode{%
+	\ifvmode\IgnorePar\fi\EndP
+ 	\HCode{
 		<figure>
 			<img
-			src="\openagh@file"
-			title="\openagh@caption"
-			alt="\openagh@alt"
-			width="\openagh@width"
-			height="\openagh@height"
+				src="\openagh@file"
+				alt="\openagh@alt"
+				width="\openagh@width"
+				height="\openagh@height"
 			/>
-			<figcaption>\tablename &nbsp;\theopenaghtable: \openagh@caption</figcaption>
+			<figcaption>\tablename &nbsp;\theopenaghtable:
+	}
+	\openagh@caption
+	\ifvmode\IgnorePar\fi\EndP
+	\HCode{</figcaption>
 		</figure>
 	}
+	\par
 }
 \else
 \newcommand{\openaghimgtable}[1][label=openaghmod:\modid:openaghtable:\theopenaghmoduletable,file={},caption={Opis tabeli},width={},height={},align=center,alt={Tekst alternatywny}]
@@ -1074,18 +973,23 @@
 	\refstepcounter{openaghmoduleimg}
 	\setkeys{openagh@keys}{label=openaghmod:\modid:openaghimg:\theopenaghmoduleimg,file={},caption={Podpis obrazka},width={},height={},align=center,alt={Tekst alternatywny},#1}
 	\openaghlabelenvs{\openagh@label}
+	\ifvmode\IgnorePar\fi\EndP
  	\HCode{
 		<figure>
 			<img
 				src="\openagh@file"
-				title="\openagh@caption"
 				alt="\openagh@alt"
 				width="\openagh@width"
 				height="\openagh@height"
 			/>
-			<figcaption>\figurename &nbsp;\theopenaghimg: \openagh@caption</figcaption>
+			<figcaption>\figurename &nbsp;\theopenaghimg:
+	}
+	\openagh@caption
+	\ifvmode\IgnorePar\fi\EndP
+	\HCode{</figcaption>
 		</figure>
 	}
+	\par
 }
 \else
 \newcommand{\openaghimg}[1][label=openaghmod:\modid:openaghimg:\theopenaghmoduleimg,file={},caption={Podpis obrazka},width={},height={},align=center,alt={Tekst alternatywny}]
@@ -1184,7 +1088,7 @@
 	\refstepcounter{openaghvimeo}
 	\setkeys{openagh@keys}{label=openaghmod:\modid:openaghvimeo:\theopenaghmodulevimeo,title={Tytuł filmu},link={},altImg={},width={},height={},#1}
 	\openaghlabelenvs{\openagh@label}
-	\notblank{\openagh@altImg}{\directlua{%
+	\ifthenelse{\equal{\openagh@altImg}{{}}}{\directlua{%
 		tex.print(openagh_include_image('center', [["\openagh@width"]], [["\openagh@height"]], \openagh@altImg))
 	}}{}
 	\begin{figure}[H]
@@ -1206,7 +1110,7 @@
 	\openaghlabelenvs{\openagh@label}
 	%\notblank{\openagh@altImage}{\includegraphics[width=\openagh@width,height=\openagh@height, center]{\openagh@altImage}}{}
 	% \notblank{\openagh@altImg}{\includegraphics[center]{\openagh@altImg}}{}
-	\notblank{\openagh@altImg}{\directlua{%
+	\ifthenelse{\equal{\openagh@altImg}{{}}}{\directlua{%
 		tex.print(openagh_include_image('center', [["\openagh@width"]], [["\openagh@height"]], "\openagh@altImg"))
 	}}{}
 	\begin{figure}[H]
@@ -1229,7 +1133,7 @@
 	\openaghlabelenvs{\openagh@label}
 % 	\notblank{\openagh@altImage}{\includegraphics[width=\openagh@width,height=\openagh@height, center]{\openagh@altImage}}{}
 	% \notblank{\openagh@altImg}{\includegraphics[center]{\openagh@altImg}}{}
-	\notblank{\openagh@altImg}{\directlua{%
+	\ifthenelse{\equal{\openagh@altImg}{{}}}{\directlua{%
 		tex.print(openagh_include_image('center', [["\openagh@width"]], [["\openagh@height"]], "\openagh@altImg"))
 	}}{}
 	\begin{figure}[H]
@@ -1245,16 +1149,6 @@
 \fi
 \makeatother
 
-
-% Animacja - błąd gramatyki przy wrzucaniu do edytora, nie mogę znleźć tego otoczenia w innych podręcznikach
-%
-% \newenvironment{openaghanimation}[1]
-% {
-%   \refstepcounter{openaghanimation}
-%   \subsection{ \textbf{Symulacja \theopenaghanimation: #1} }
-% }
-% {}
-
 % Symulacja
 % Argumenty:
 % #1 - Alternatywna kotwica
@@ -1266,7 +1160,6 @@
 % #7 - Tekst alternatywny obrazka zastępczego 
 % #8 - Podpis obrazka
 % #9 - Plik obrazka
-
 \makeatletter
 \ifdefined\HCode
 \newenvironment{openaghsimulation}[1][title={},label=openaghmod:\modid:openaghsimulation:\theopenaghmodulesimulation,file={},iframeLink={},linkLabel={Plik do pobrania},altImg={},altImgText={}]
@@ -1384,7 +1277,7 @@
 			/>
 			<figcaption class="openaghimgformula__equation-counter"> (\theequation) </figcaption>
 		</figure>
-  }
+	}
 }
 \else
 \newcommand{\openaghimgformula}[1][title={Tytuł wzoru z obrazka},label=openaghmod:\modid:openaghformula:\theopenaghmoduleformula,file={},width={},height={},align=center,alt={Tekst alternatywny}]
@@ -1403,30 +1296,6 @@
 }
 \fi
 \makeatother
-
-
-% Wzór chemiczny 3D - wstawiany jako OBRAZ - nie ma
-
-% Kod źródłowy
-% Obudować swoim otoczeniem
-% podpis, plik, kotwica, tekst alternatywny
-% \makeatletter
-% \newenvironment{openaghlisting}[1][caption={Podpis kodu},file={},alt={Tekst alternatywny}]
-% {%
-% 	\refstepcounter{openaghlisting}
-% 	\setkeys{openagh@keys}{caption={Podpis kodu},label=openaghmod:\modid:openaghlisting:\theopenaghlisting,file={},alt={Tekst alternatywny},#1}
-% 	\renewcommand{\lstlistingname}{\openaghlistingcap}
-% 	\openaghlabelenvs{\openagh@label}
-% 	%\begin{figure}[H]
-% 		% Save original value of counter to tmpcounter and change figure counter
-% 	\copycounter{lstlisting}{openaghlisting}
-% 	\lstinputlisting[language=Octave,caption=\openagh@caption]{\openagh@file}
-% %		\caption{\openagh@caption}
-% 		% Restore figure counter to original value
-% 	\assigntmpcounter{lstlisting}
-% 	\renewcommand{\lstlistingname}{Listing}
-% }
-% \makeatother
 
 \makeatletter
 \ifdefined\HCode
